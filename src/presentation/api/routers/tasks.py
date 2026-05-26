@@ -5,12 +5,14 @@ from src.presentation.api.schemas.task import (
     CreateTaskResponse,
     CreateTaskRequest,
     TaskResponse,
+    ListTasksParams,
 )
 from src.application.use_cases.create_task import (
     CreateTaskCommand,
     CreateTaskResult,
 )
 from src.application.use_cases.get_task_by_id import GetTaskByIdCommand
+from src.application.use_cases.list_tasks import ListTasksCommand
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
@@ -46,6 +48,32 @@ async def create_task(
         status=TaskStatus(result.status),
         created_at=result.created_at,
     )
+
+
+@router.get("/", response_model=list[TaskResponse], status_code=status.HTTP_200_OK)
+async def get_list_tasks(
+    params: Annotated[ListTasksParams, Depends()],
+    deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+) -> list[TaskResponse]:
+    result = await deps.list_tasks.execute(
+        command=ListTasksCommand(
+            project_id=params.project_id,
+            status=params.status,
+            limit=params.limit,
+            offset=params.offset,
+        )
+    )
+    return [
+        TaskResponse(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            project_id=task.project_id,
+            status=TaskStatus(task.status),
+            created_at=task.created_at,
+        )
+        for task in result.items
+    ]
 
 
 @router.get("/{task_id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)

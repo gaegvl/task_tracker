@@ -1,6 +1,6 @@
 from typing import Protocol
 from uuid import UUID
-from src.domain.entities.task import Task
+from src.domain.entities.task import Task, TaskStatus
 
 
 class TaskRepositoryPort(Protocol):
@@ -8,4 +8,13 @@ class TaskRepositoryPort(Protocol):
         pass
 
     async def get_by_id(self, task_id: UUID) -> Task | None:
+        pass
+
+    async def list_tasks(
+        self,
+        project_id: UUID | None,
+        status: TaskStatus | None,
+        limit: int,
+        offset: int,
+    ) -> list[Task]:
         pass

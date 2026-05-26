@@ -1,6 +1,19 @@
 from fastapi.testclient import TestClient
 from src.main import app
-from uuid import uuid4
+from uuid import UUID, uuid4
+from src.domain.entities.task import TaskStatus
+
+
+def create_some_tasks(client: TestClient, i: int, project_id: UUID) -> None:
+    for i in range(i):
+        client.post(
+            "/tasks",
+            json={
+                "title": f"Test Task {i}",
+                "description": f"Test Description {i}",
+                "project_id": project_id,
+            },
+        )
 
 
 def test_post_then_get_task() -> None:
@@ -35,3 +48,52 @@ def test_get_task_by_id_not_found() -> None:
         got = client.get("/tasks/123e4567-e89b-12d3-a456-426614174000")
         assert got.status_code == 404
         assert got.json() == {"detail": "Task not found"}
+
+
+def test_get_list_tasks() -> None:
+    project_id_todo = str(uuid4())
+    project_id_in_progress = str(uuid4())
+    with TestClient(app) as client:
+        create_some_tasks(client, 15, project_id_todo)
+        create_some_tasks(client, 3, project_id_in_progress)
+
+        tasks = client.get(
+            "/tasks",
+            params={
+                "project_id": project_id_todo,
+                "status": TaskStatus.TODO.value,
+                "limit": 10,
+                "offset": 0,
+            },
+        )
+        tasks_json = tasks.json()
+        assert tasks.status_code == 200
+        assert len(tasks_json) == 10
+        assert tasks_json[0]["status"] == TaskStatus.TODO.value
+
+        tasks = client.get(
+            "/tasks",
+            params={
+                "project_id": project_id_todo,
+                "status": TaskStatus.TODO.value,
+                "limit": 10,
+                "offset": 10,
+            },
+        )
+        tasks_json = tasks.json()
+        assert tasks.status_code == 200
+        assert len(tasks_json) == 5
+        assert tasks_json[0]["status"] == TaskStatus.TODO.value
+
+        tasks = client.get(
+            "/tasks",
+            params={
+                "project_id": project_id_in_progress,
+                "limit": 10,
+                "offset": 0,
+            },
+        )
+        tasks_json = tasks.json()
+        assert tasks.status_code == 200
+        assert len(tasks_json) == 3
+        assert tasks_json[0]["project_id"] == project_id_in_progress
