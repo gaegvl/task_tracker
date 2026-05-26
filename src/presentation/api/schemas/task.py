@@ -27,3 +27,10 @@ class ListTasksParams(BaseModel):
     status: TaskStatus | None = None
     limit: int = Field(ge=1, le=100, default=20)
     offset: int = Field(ge=0, default=0)
+
+
+class UpdateTaskRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    project_id: UUID | None = None
+    status: TaskStatus

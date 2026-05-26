@@ -1,11 +1,13 @@
 from uuid import UUID
 from fastapi import APIRouter, Body, Path, status, Depends, HTTPException
+from src.application.use_cases.update_task import UpdateTaskCommand
 from src.domain.entities.task import TaskStatus
 from src.presentation.api.schemas.task import (
     CreateTaskResponse,
     CreateTaskRequest,
     TaskResponse,
     ListTasksParams,
+    UpdateTaskRequest,
 )
 from src.application.use_cases.create_task import (
     CreateTaskCommand,
@@ -101,3 +103,37 @@ async def get_task_by_id(
         status=TaskStatus(result.status),
         created_at=result.created_at,
     )
+
+
+@router.patch("/{task_id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+async def update_task(
+    task_id: Annotated[UUID, Path()],
+    command: Annotated[UpdateTaskRequest, Body()],
+    deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+) -> TaskResponse:
+    try:
+        updated_task = await deps.update_task.execute(
+            command=UpdateTaskCommand(
+                task_id=task_id,
+                status=command.status,
+                title=command.title,
+                description=command.description,
+                project_id=command.project_id,
+            )
+        )
+        return TaskResponse(
+            id=updated_task.id,
+            title=updated_task.title,
+            description=updated_task.description,
+            project_id=updated_task.project_id,
+            status=TaskStatus(updated_task.status),
+            created_at=updated_task.created_at,
+        )
+    except TaskNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
+    except DomainError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )

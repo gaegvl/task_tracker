@@ -10,6 +10,9 @@ class TaskRepositoryPort(Protocol):
     async def get_by_id(self, task_id: UUID) -> Task | None:
         pass
 
+    async def update(self, task: Task) -> None:
+        pass
+
     async def list_tasks(
         self,
         project_id: UUID | None,
