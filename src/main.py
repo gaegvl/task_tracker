@@ -1,15 +1,25 @@
 from fastapi import FastAPI
 from typing import AsyncGenerator
 from src.presentation.api.routers import health, tasks
-from src.infrastructure.db.repositories.in_memory_task_repository import (
-    InMemoryTaskRepository,
-)
+from src.infrastructure.config import get_settings
+from src.infrastructure.db.engine import create_engine
+from src.infrastructure.db.session import create_session_factory
+from src.infrastructure.db.session import Base
 
 
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    task_repository = InMemoryTaskRepository()
-    app.state.task_repository = task_repository
+    settings = get_settings()
+    engine = create_engine(settings)
+    session_factory = create_session_factory(engine)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    app.state.settings = settings
+    app.state.engine = engine
+    app.state.session_factory = session_factory
     yield
+    await engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan)

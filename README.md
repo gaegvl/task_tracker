@@ -1,16 +1,25 @@
 # Task Tracker
 
-REST API для задач: создание, список с фильтрами, получение и обновление. Проект построен по слоям (domain → application → infrastructure → presentation) с портами и use case’ами; данные пока хранятся в памяти на время жизни процесса.
+REST API для задач: создание, список с фильтрами, получение и обновление. Проект построен по слоям (domain → application → infrastructure → presentation) с портами и use case’ами; данные хранятся в PostgreSQL через async SQLAlchemy.
 
 ## Стек
 
 - Python 3.14+
 - [FastAPI](https://fastapi.tiangolo.com/), [Pydantic](https://docs.pydantic.dev/)
 - [Uvicorn](https://www.uvicorn.org/)
-- [SQLAlchemy](https://www.sqlalchemy.org/) (зависимость заложена для будущего персистентного слоя)
+- [SQLAlchemy](https://www.sqlalchemy.org/) + asyncpg (PostgreSQL)
 - [pytest](https://pytest.org/), [httpx](https://www.python-httpx.org/) (для `TestClient`)
 
 Управление зависимостями: [uv](https://docs.astral.sh/uv/) (`uv.lock` в репозитории).
+
+Подключение к БД настраивается через `src/.env` (pydantic-settings):
+
+```env
+DATABASE_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/task_tracker_dev
+TEST_DATABASE_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/task_tracker_test
+```
+
+В приложении используется `DATABASE_URL`, в тестах — `TEST_DATABASE_URL` (через `tests/conftest.py`).
 
 ## Установка
 
@@ -133,11 +142,11 @@ uv run pytest
 src/
   domain/           # сущности, статусы, доменные исключения
   application/      # порты, use case’ы
-  infrastructure/   # реализации (сейчас in-memory репозиторий)
+  infrastructure/   # реализации (PostgreSQL-репозиторий, настройки, SQLAlchemy-модели)
   presentation/     # FastAPI: роутеры, схемы, зависимости
   main.py           # точка входа, lifespan, подключение роутеров
 tests/              # pytest
 learning_steps/     # пошаговые заметки по развитию проекта
 ```
 
-Данные не сохраняются между перезапусками сервера: используется `InMemoryTaskRepository`, создаётся в `lifespan` приложения.
+Данные сохраняются в PostgreSQL (схема и таблицы создаются при старте приложения через SQLAlchemy). Для unit-тестов use case по-прежнему используется `InMemoryTaskRepository`, для API-тестов — тестовая БД.
