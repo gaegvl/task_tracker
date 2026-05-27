@@ -8,4 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local environment and secrets
+.env
+src/.env
+
+# Local database artifacts
+*.db
+*.sqlite3
+
+# Test/cache artifacts
+.pytest_cache/
 /learning_steps
