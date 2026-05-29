@@ -1,17 +1,20 @@
 import os
+import subprocess
 
 import pytest_asyncio
 from sqlalchemy import text
 
 from src.infrastructure.config import get_settings, Settings
 from src.infrastructure.db.engine import create_engine
-from src.infrastructure.db.session import Base, create_session_factory
+from src.infrastructure.db.session import create_session_factory
 
 
 # Подключаем приложение к test-базе
 _settings = Settings()
 os.environ["DATABASE_URL"] = _settings.test_database_url
 get_settings.cache_clear()
+
+subprocess.run(["uv", "run", "alembic", "upgrade", "head"], check=True)
 settings = get_settings()
 
 
@@ -23,9 +26,6 @@ async def _setup_and_clean_db():
     """
     engine = create_engine(settings)
     session_factory = create_session_factory(engine)
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
     async with session_factory() as session:
         await session.execute(text("TRUNCATE TABLE tasks RESTART IDENTITY CASCADE"))

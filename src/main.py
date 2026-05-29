@@ -4,17 +4,12 @@ from src.presentation.api.routers import health, tasks
 from src.infrastructure.config import get_settings
 from src.infrastructure.db.engine import create_engine
 from src.infrastructure.db.session import create_session_factory
-from src.infrastructure.db.session import Base
 
 
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     engine = create_engine(settings)
     session_factory = create_session_factory(engine)
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = session_factory
