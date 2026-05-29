@@ -3,7 +3,6 @@ from uuid import UUID
 from datetime import datetime
 from src.domain.entities.task import TaskStatus, Task
 from src.application.ports.task_repository import TaskRepositoryPort
-from src.domain.exceptions import TaskNotFoundError
 
 
 @dataclass(frozen=True)
@@ -38,6 +37,4 @@ class GetTaskByIdUseCase:
 
     async def execute(self, command: GetTaskByIdCommand) -> GetTaskByIdResult:
         task = await self.task_repository.get_by_id(command.id)
-        if task is None:
-            raise TaskNotFoundError(command.id)
         return GetTaskByIdResult.from_entity(task)

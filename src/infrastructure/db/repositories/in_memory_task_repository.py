@@ -1,6 +1,6 @@
 from uuid import UUID
-from src.domain.entities.task import Task, TaskStatus
 from src.domain.exceptions import TaskNotFoundError
+from src.domain.entities.task import Task, TaskStatus
 from src.application.ports.task_repository import TaskRepositoryPort
 from operator import attrgetter
 
@@ -12,12 +12,13 @@ class InMemoryTaskRepository(TaskRepositoryPort):
     async def add(self, task: Task) -> None:
         self.in_memory_task_repository[task.id] = task
 
-    async def get_by_id(self, task_id: UUID) -> Task | None:
-        return self.in_memory_task_repository.get(task_id)
+    async def get_by_id(self, task_id: UUID) -> Task:
+        task = self.in_memory_task_repository.get(task_id)
+        if not task:
+            raise TaskNotFoundError(task_id)
+        return task
 
     async def update(self, task: Task) -> None:
-        if task.id not in self.in_memory_task_repository:
-            raise TaskNotFoundError(task.id)
         self.in_memory_task_repository[task.id] = task
 
     async def list_tasks(

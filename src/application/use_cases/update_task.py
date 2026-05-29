@@ -3,7 +3,6 @@ from dataclasses import dataclass, replace
 from uuid import UUID
 
 from src.application.use_cases.get_task_by_id import GetTaskByIdResult
-from src.domain.exceptions import TaskNotFoundError
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import TaskStatus
 
@@ -23,8 +22,6 @@ class UpdateTaskUseCase:
 
     async def execute(self, command: UpdateTaskCommand) -> GetTaskByIdResult:
         task = await self.task_repository.get_by_id(command.task_id)
-        if task is None:
-            raise TaskNotFoundError(command.task_id)
 
         updated_task = replace(
             task,

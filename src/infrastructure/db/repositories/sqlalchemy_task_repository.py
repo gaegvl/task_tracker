@@ -1,5 +1,6 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.domain.exceptions import TaskNotFoundError
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
 from src.infrastructure.db.models.task import Task as TaskModel
@@ -22,7 +23,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         self.session.add(task_model)
         await self.session.commit()
 
-    async def get_by_id(self, task_id: UUID) -> Task | None:
+    async def get_by_id(self, task_id: UUID) -> Task:
         task = await self.session.scalar(
             select(TaskModel).where(TaskModel.id == task_id)
         )
@@ -38,10 +39,9 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         )
 
     async def update(self, task: Task) -> None:
-        get_task = await self.get_by_id(task.id)
-        updated_task = await self.session.execute(
+        await self.session.execute(
             update(TaskModel)
-            .where(TaskModel.id == get_task.id)
+            .where(TaskModel.id == task.id)
             .values(
                 title=task.title,
                 description=task.description,
@@ -49,8 +49,6 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
                 status=task.status.value,
             )
         )
-        if not updated_task:
-            raise TaskNotFoundError(task.id)
         await self.session.commit()
 
     async def list_tasks(
