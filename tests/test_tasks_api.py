@@ -153,3 +153,21 @@ def test_update_task() -> None:
         )
         assert updated_task.status_code == 404
         assert updated_task.json() == {"detail": "Task not found"}
+
+
+def test_delete_task() -> None:
+    project_id = str(uuid4())
+    with TestClient(app) as client:
+        ids = create_some_tasks(client, 3, project_id)
+
+        assert client.get(f"/tasks/{ids[0]}").status_code == 200
+
+        deleted = client.delete(f"/tasks/{ids[0]}")
+
+        deleted_twice = client.delete(f"/tasks/{ids[0]}")
+
+        assert deleted.status_code == 204
+        assert deleted_twice.status_code == 404
+        assert client.get(f"/tasks/{ids[0]}").status_code == 404
+
+        assert client.delete(f"/tasks/{uuid4()}").status_code == 404

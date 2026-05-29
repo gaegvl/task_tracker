@@ -3,8 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
 from src.infrastructure.db.models.task import Task as TaskModel
-from sqlalchemy import select, update
-from src.domain.exceptions import TaskNotFoundError
+from sqlalchemy import delete, select, update
 
 
 class SqlAlchemyTaskRepository(TaskRepositoryPort):
@@ -84,3 +83,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             )
             for task in tasks
         ]
+
+    async def delete(self, task_id: UUID) -> None:
+        await self.session.execute(delete(TaskModel).where(TaskModel.id == task_id))
+        await self.session.commit()

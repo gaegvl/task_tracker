@@ -43,3 +43,6 @@ class InMemoryTaskRepository(TaskRepositoryPort):
                 task for task in sorted_task_by_created_at if task.status == status
             ]
         return sorted_task_by_created_at[offset : offset + limit]
+
+    async def delete(self, task_id: UUID) -> None:
+        del self.in_memory_task_repository[task_id]

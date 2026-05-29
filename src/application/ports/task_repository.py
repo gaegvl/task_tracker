@@ -7,7 +7,7 @@ class TaskRepositoryPort(Protocol):
     async def add(self, task: Task) -> None:
         pass
 
-    async def get_by_id(self, task_id: UUID) -> Task | None:
+    async def get_by_id(self, task_id: UUID) -> Task:
         pass
 
     async def update(self, task: Task) -> None:
@@ -20,4 +20,7 @@ class TaskRepositoryPort(Protocol):
         limit: int,
         offset: int,
     ) -> list[Task]:
+        pass
+
+    async def delete(self, task_id: UUID) -> None:
         pass
