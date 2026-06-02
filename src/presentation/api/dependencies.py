@@ -7,8 +7,17 @@ from src.application.use_cases.create_task import CreateTaskUseCase
 from src.application.use_cases.get_task_by_id import GetTaskByIdUseCase
 from src.application.use_cases.update_task import UpdateTaskUseCase
 from src.application.use_cases.delete_task import DeleteTaskUseCase
+
+from src.application.use_cases.create_project import CreateProjectUseCase
+from src.application.use_cases.get_project_by_id import GetProjectByIdUseCase
+from src.application.use_cases.update_project import UpdateProjectUseCase
+from src.application.use_cases.delete_project import DeleteProjectUseCase
+from src.application.use_cases.list_projects import ListProjectsUseCase
 from src.infrastructure.db.repositories.sqlalchemy_task_repository import (
     SqlAlchemyTaskRepository,
+)
+from src.infrastructure.db.repositories.sqlalchemy_project_repository import (
+    SqlAlchemyProjectRepository,
 )
 
 
@@ -19,6 +28,11 @@ class ApplicationDependencies:
     list_tasks: ListTaskUseCase
     update_task: UpdateTaskUseCase
     delete_task: DeleteTaskUseCase
+    create_project: CreateProjectUseCase
+    get_project_by_id: GetProjectByIdUseCase
+    list_projects: ListProjectsUseCase
+    update_project: UpdateProjectUseCase
+    delete_project: DeleteProjectUseCase
 
 
 async def get_session(request: Request) -> AsyncSession:
@@ -29,11 +43,17 @@ async def get_session(request: Request) -> AsyncSession:
 def get_application_dependencies(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ApplicationDependencies:
-    repository = SqlAlchemyTaskRepository(session)
+    task_repository = SqlAlchemyTaskRepository(session)
+    project_repository = SqlAlchemyProjectRepository(session)
     return ApplicationDependencies(
-        create_task=CreateTaskUseCase(repository),
-        get_task_by_id=GetTaskByIdUseCase(repository),
-        list_tasks=ListTaskUseCase(repository),
-        update_task=UpdateTaskUseCase(repository),
-        delete_task=DeleteTaskUseCase(repository),
+        create_task=CreateTaskUseCase(task_repository, project_repository),
+        get_task_by_id=GetTaskByIdUseCase(task_repository),
+        list_tasks=ListTaskUseCase(task_repository),
+        update_task=UpdateTaskUseCase(task_repository, project_repository),
+        delete_task=DeleteTaskUseCase(task_repository),
+        create_project=CreateProjectUseCase(project_repository),
+        get_project_by_id=GetProjectByIdUseCase(project_repository),
+        list_projects=ListProjectsUseCase(project_repository),
+        update_project=UpdateProjectUseCase(project_repository),
+        delete_project=DeleteProjectUseCase(project_repository, task_repository),
     )
