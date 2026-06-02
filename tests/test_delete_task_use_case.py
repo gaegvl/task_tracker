@@ -1,4 +1,11 @@
 import pytest
+from src.application.use_cases.create_project import (
+    CreateProjectCommand,
+    CreateProjectUseCase,
+)
+from src.infrastructure.db.repositories.in_memory_project_repository import (
+    InMemoryProjectRepository,
+)
 from src.application.use_cases.create_task import CreateTaskCommand, CreateTaskUseCase
 from src.application.use_cases.delete_task import DeleteTaskCommand, DeleteTaskUseCase
 from src.domain.exceptions import TaskNotFoundError
@@ -11,11 +18,16 @@ from uuid import uuid4
 @pytest.mark.asyncio
 async def test_delete_task_use_case_success() -> None:
     repository = InMemoryTaskRepository()
-
-    create_task = CreateTaskUseCase(repository)
+    project_repository = InMemoryProjectRepository()
+    project_create_use_case = CreateProjectUseCase(project_repository)
+    project_command = CreateProjectCommand(
+        name="Test Project", description="Test Description"
+    )
+    project_result = await project_create_use_case.execute(command=project_command)
+    create_task = CreateTaskUseCase(repository, project_repository)
 
     create_command = CreateTaskCommand(
-        title="Test Task", description="Test Description", project_id=uuid4()
+        title="Test Task", description="Test Description", project_id=project_result.id
     )
     create_task_result = await create_task.execute(command=create_command)
 

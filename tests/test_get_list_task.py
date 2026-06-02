@@ -1,6 +1,13 @@
 from datetime import datetime
 import pytest
 
+from src.application.use_cases.create_project import (
+    CreateProjectCommand,
+    CreateProjectUseCase,
+)
+from src.infrastructure.db.repositories.in_memory_project_repository import (
+    InMemoryProjectRepository,
+)
 from src.application.use_cases.create_task import CreateTaskCommand, CreateTaskUseCase
 from src.application.use_cases.list_tasks import ListTasksCommand, ListTaskUseCase
 from src.domain.entities.task import Task, TaskStatus
@@ -28,13 +35,31 @@ async def create_some_tasks(
 
 @pytest.mark.asyncio
 async def test_get_list_task_use_case() -> None:
-    project_id_todo = uuid4()
-    project_id_in_progress = uuid4()
-    project_id_done = uuid4()
+    project_repository = InMemoryProjectRepository()
+    create_project_use_case = CreateProjectUseCase(
+        project_repository=project_repository
+    )
+    command = CreateProjectCommand(
+        name="project_id_todo", description="Test Description"
+    )
+    result = await create_project_use_case.execute(command=command)
+    project_id_todo = result.id
+
+    command = CreateProjectCommand(
+        name="project_id_in_progress", description="Test Description"
+    )
+    result = await create_project_use_case.execute(command=command)
+    project_id_in_progress = result.id
+
+    command = CreateProjectCommand(
+        name="project_id_done", description="Test Description"
+    )
+    result = await create_project_use_case.execute(command=command)
+    project_id_done = result.id
 
     repository = InMemoryTaskRepository()
 
-    create_task = CreateTaskUseCase(repository)
+    create_task = CreateTaskUseCase(repository, project_repository)
 
     await create_task.execute(
         command=CreateTaskCommand(

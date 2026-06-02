@@ -20,9 +20,12 @@ def create_some_tasks(client: TestClient, i: int, project_id: UUID) -> list[UUID
 
 
 def test_post_then_get_task() -> None:
-    project_id = str(uuid4())
-
     with TestClient(app) as client:
+        create_project = client.post(
+            "/projects",
+            json={"name": "Test Project", "description": "Test Description"},
+        )
+        project_id = create_project.json()["id"]
         created = client.post(
             "/tasks",
             json={
@@ -54,16 +57,25 @@ def test_get_task_by_id_not_found() -> None:
 
 
 def test_get_list_tasks() -> None:
-    project_id_todo = str(uuid4())
-    project_id_in_progress = str(uuid4())
     with TestClient(app) as client:
-        create_some_tasks(client, 15, project_id_todo)
-        create_some_tasks(client, 3, project_id_in_progress)
+        project_id_todo = client.post(
+            "/projects",
+            json={"name": "Test project_id_todo", "description": "Test Description"},
+        )
+        project_id_in_progress = client.post(
+            "/projects",
+            json={
+                "name": "Test project_id_in_progress",
+                "description": "Test Description",
+            },
+        )
+        create_some_tasks(client, 15, project_id_todo.json()["id"])
+        create_some_tasks(client, 3, project_id_in_progress.json()["id"])
 
         tasks = client.get(
             "/tasks",
             params={
-                "project_id": project_id_todo,
+                "project_id": project_id_todo.json()["id"],
                 "status": TaskStatus.TODO.value,
                 "limit": 10,
                 "offset": 0,
@@ -77,7 +89,7 @@ def test_get_list_tasks() -> None:
         tasks = client.get(
             "/tasks",
             params={
-                "project_id": project_id_todo,
+                "project_id": project_id_todo.json()["id"],
                 "status": TaskStatus.TODO.value,
                 "limit": 10,
                 "offset": 10,
@@ -91,7 +103,7 @@ def test_get_list_tasks() -> None:
         tasks = client.get(
             "/tasks",
             params={
-                "project_id": project_id_in_progress,
+                "project_id": project_id_in_progress.json()["id"],
                 "limit": 10,
                 "offset": 0,
             },
@@ -99,12 +111,16 @@ def test_get_list_tasks() -> None:
         tasks_json = tasks.json()
         assert tasks.status_code == 200
         assert len(tasks_json) == 3
-        assert tasks_json[0]["project_id"] == project_id_in_progress
+        assert tasks_json[0]["project_id"] == project_id_in_progress.json()["id"]
 
 
 def test_update_task() -> None:
-    project_id = str(uuid4())
     with TestClient(app) as client:
+        create_project = client.post(
+            "/projects",
+            json={"name": "Test Project", "description": "Test Description"},
+        )
+        project_id = create_project.json()["id"]
         ids = create_some_tasks(client, 3, project_id)
 
         for i in ids[:2]:
@@ -156,8 +172,12 @@ def test_update_task() -> None:
 
 
 def test_delete_task() -> None:
-    project_id = str(uuid4())
     with TestClient(app) as client:
+        create_project = client.post(
+            "/projects",
+            json={"name": "Test Project", "description": "Test Description"},
+        )
+        project_id = create_project.json()["id"]
         ids = create_some_tasks(client, 3, project_id)
 
         assert client.get(f"/tasks/{ids[0]}").status_code == 200
@@ -171,3 +191,17 @@ def test_delete_task() -> None:
         assert client.get(f"/tasks/{ids[0]}").status_code == 404
 
         assert client.delete(f"/tasks/{uuid4()}").status_code == 404
+
+
+def test_create_task_with_invalid_project_id() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/tasks",
+            json={
+                "title": "Test Task",
+                "description": "Test Description",
+                "project_id": str(uuid4()),
+            },
+        )
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}

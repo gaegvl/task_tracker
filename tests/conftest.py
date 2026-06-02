@@ -13,7 +13,6 @@ from src.infrastructure.db.session import create_session_factory
 _settings = Settings()
 os.environ["DATABASE_URL"] = _settings.test_database_url
 get_settings.cache_clear()
-
 subprocess.run(["uv", "run", "alembic", "upgrade", "head"], check=True)
 settings = get_settings()
 
@@ -28,7 +27,7 @@ async def _setup_and_clean_db():
     session_factory = create_session_factory(engine)
 
     async with session_factory() as session:
-        await session.execute(text("TRUNCATE TABLE tasks RESTART IDENTITY CASCADE"))
+        await session.execute(text("TRUNCATE projects, tasks RESTART IDENTITY CASCADE"))
         await session.commit()
 
     try:
