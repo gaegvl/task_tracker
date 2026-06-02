@@ -4,7 +4,9 @@ from uuid import UUID
 
 from src.application.use_cases.get_task_by_id import GetTaskByIdResult
 from src.application.ports.task_repository import TaskRepositoryPort
+from src.application.ports.project_repository import ProjectRepositoryPort
 from src.domain.entities.task import TaskStatus
+from src.domain.exceptions import ProjectNotFoundError
 
 
 @dataclass
@@ -17,12 +19,20 @@ class UpdateTaskCommand:
 
 
 class UpdateTaskUseCase:
-    def __init__(self, task_repository: TaskRepositoryPort) -> None:
+    def __init__(
+        self,
+        task_repository: TaskRepositoryPort,
+        project_repository: ProjectRepositoryPort,
+    ) -> None:
         self.task_repository = task_repository
+        self.project_repository = project_repository
 
     async def execute(self, command: UpdateTaskCommand) -> GetTaskByIdResult:
         task = await self.task_repository.get_by_id(command.task_id)
-
+        if command.project_id:
+            project = await self.project_repository.get_by_id(command.project_id)
+            if not project:
+                raise ProjectNotFoundError(command.project_id)
         updated_task = replace(
             task,
             status=command.status,

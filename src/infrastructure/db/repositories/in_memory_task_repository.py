@@ -47,3 +47,9 @@ class InMemoryTaskRepository(TaskRepositoryPort):
 
     async def delete(self, task_id: UUID) -> None:
         del self.in_memory_task_repository[task_id]
+
+    async def exists_by_project_id(self, project_id: UUID) -> bool:
+        return any(
+            task.project_id == project_id
+            for task in self.in_memory_task_repository.values()
+        )

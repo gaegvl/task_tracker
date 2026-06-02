@@ -24,3 +24,6 @@ class TaskRepositoryPort(Protocol):
 
     async def delete(self, task_id: UUID) -> None:
         pass
+
+    async def exists_by_project_id(self, project_id: UUID) -> bool:
+        pass

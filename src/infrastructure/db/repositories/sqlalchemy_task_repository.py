@@ -4,7 +4,7 @@ from src.domain.exceptions import TaskNotFoundError
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
 from src.infrastructure.db.models.task import Task as TaskModel
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, exists, select, update
 
 
 class SqlAlchemyTaskRepository(TaskRepositoryPort):
@@ -85,3 +85,8 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
     async def delete(self, task_id: UUID) -> None:
         await self.session.execute(delete(TaskModel).where(TaskModel.id == task_id))
         await self.session.commit()
+
+    async def exists_by_project_id(self, project_id: UUID) -> bool:
+        exists_query = exists(TaskModel).where(TaskModel.project_id == project_id)
+        result = await self.session.scalar(select(TaskModel).where(exists_query))
+        return bool(result)

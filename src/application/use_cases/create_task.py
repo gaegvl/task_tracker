@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from uuid import UUID, uuid4
 from datetime import datetime
 from src.application.ports.task_repository import TaskRepositoryPort
+from src.application.ports.project_repository import ProjectRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
 
 
@@ -21,8 +22,13 @@ class CreateTaskResult:
 
 
 class CreateTaskUseCase:
-    def __init__(self, task_repository: TaskRepositoryPort) -> None:
+    def __init__(
+        self,
+        task_repository: TaskRepositoryPort,
+        project_repository: ProjectRepositoryPort,
+    ) -> None:
         self.task_repository = task_repository
+        self.project_repository = project_repository
 
     async def execute(self, command: CreateTaskCommand) -> CreateTaskResult:
         task = Task(
@@ -33,6 +39,7 @@ class CreateTaskUseCase:
             status=TaskStatus.TODO,
             created_at=datetime.now(),
         )
+        await self.project_repository.get_by_id(command.project_id)
         await self.task_repository.add(task=task)
         return CreateTaskResult(
             id=task.id,

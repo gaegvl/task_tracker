@@ -20,7 +20,12 @@ from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
 )
-from src.domain.exceptions import DomainError, InvalidTaskTitleError, TaskNotFoundError
+from src.domain.exceptions import (
+    DomainError,
+    InvalidTaskTitleError,
+    ProjectNotFoundError,
+    TaskNotFoundError,
+)
 from typing import Annotated
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -40,6 +45,10 @@ async def create_task(
     except InvalidTaskTitleError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid task title"
+        )
+    except ProjectNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
     except DomainError as e:
         raise HTTPException(
