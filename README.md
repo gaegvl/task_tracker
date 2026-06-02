@@ -74,7 +74,7 @@ uv run uvicorn src.main:app --reload
 
 По умолчанию: `http://127.0.0.1:8000`. Документация: [Swagger UI](http://127.0.0.1:8000/docs), [ReDoc](http://127.0.0.1:8000/redoc).
 
-## API
+## API Задач
 
 | Метод | Путь | Описание |
 |--------|------|----------|
@@ -93,21 +93,21 @@ uv run uvicorn src.main:app --reload
 
 Ответ `201`: `id`, `title`, `status` (по умолчанию `todo`), `created_at`. Невалидный `title` → `400`.
 
-### Список (`GET /tasks/`)
+### Список задач (`GET /tasks/`)
 
 Query: `project_id` (обязательный), `status` (optional), `limit` (1–100, default 20), `offset` (≥ 0, default 0).
 
 Ответ `200`: массив `TaskResponse`, сортировка `created_at` desc. Ошибки валидации → `422`.
 
-### Получение (`GET /tasks/{task_id}`)
+### Получение задачи по id (`GET /tasks/{task_id}`)
 
 Ответ `200` или `404` (`{"detail": "Task not found"}`).
 
-### Обновление (`PATCH /tasks/{task_id}`)
+### Обновление задачи по id (`PATCH /tasks/{task_id}`)
 
 Body: `status` (обязательный), `title`, `description`, `project_id` (optional). Ответ `200` или `404`. Невалидный enum → `422`.
 
-### Удаление (`DELETE /tasks/{task_id}`)
+### Удаление задачи по id (`DELETE /tasks/{task_id}`)
 
 Path: `task_id` (обязательный). Ответ `204` или `404`. Ошибки валидации → `422`.
 
@@ -134,6 +134,66 @@ curl -s -X DELETE "http://127.0.0.1:8000/tasks/<TASK_ID>"
 # несуществующая задача
 curl -s -X GET "http://127.0.0.1:8000/tasks/<TASK_ID>"
 ```
+
+## API Проектов
+
+| Метод | Путь | Описание |
+|--------|------|----------|
+| `POST` | `/projects/` | Создать проект |
+| `GET` | `/projects/` | Список проектов (пагинация) |
+| `GET` | `/projects/{project_id}` | Получить проект по UUID |
+| `PATCH` | `/projects/{project_id}` | Обновить проект (частично) |
+| `DELETE` | `/projects/{project_id}` | Удалить проект |
+
+
+### Создание проекта (`POST /projects/`)
+
+Тело (JSON): `name`, `description` (optional).
+
+Ответ `201`: `id`, `name`, `description`, `created_at`. Невалидный `name` → `400`.
+
+### Список проектов (`GET /projects/`)
+
+Query: `limit` (1–100, default 10), `offset` (≥ 0, default 0).
+
+Ответ `200`: массив `CreateProjectResponse`. Ошибки валидации → `422`.
+
+### Получение проекта по id (`GET /projects/{project_id}`)
+
+Ответ `200` или `404` (`{"detail": "Project not found"}`).
+
+### Обновление проекта по id (`PATCH /projects/{project_id}`)
+
+Body: `name`, `description` (optional). Ответ `200` или `404`. Невалидный `name` → `400`.
+
+### Удаление проекта по id (`DELETE /projects/{project_id}`)
+
+Path: `project_id` (обязательный). Ответ `204` или `404`. Ошибки валидации → `422`.
+
+### Примеры (curl)
+
+```bash
+# создать
+curl -s -X POST http://127.0.0.1:8000/projects/ \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My project","description":"My description"}'
+
+# список проектов
+curl -s "http://127.0.0.1:8000/projects/?limit=10&offset=0"
+
+# получить проект по id
+curl -s "http://127.0.0.1:8000/projects/<PROJECT_ID>"
+
+# обновить проект
+curl -s -X PATCH "http://127.0.0.1:8000/projects/<PROJECT_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My project","description":"My description"}'
+
+# удалить
+curl -s -X DELETE "http://127.0.0.1:8000/projects/<PROJECT_ID>"
+
+```
+
 
 
 ## Тесты
