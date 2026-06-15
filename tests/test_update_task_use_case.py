@@ -1,125 +1,171 @@
 import pytest
 from uuid import uuid4
-from src.application.use_cases.create_project import (
-    CreateProjectCommand,
-    CreateProjectUseCase,
-)
+
+from src.application.use_cases.update_task import UpdateTaskCommand, UpdateTaskUseCase
+from src.domain.entities.task import TaskStatus
+from src.domain.exceptions import InvalidTaskStatusTransitionError, TaskNotFoundError
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
-from src.application.use_cases.update_task import UpdateTaskCommand, UpdateTaskUseCase
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
-from src.domain.exceptions import InvalidTaskStatusTransitionError, TaskNotFoundError
-from src.application.use_cases.create_task import CreateTaskCommand, CreateTaskUseCase
-from src.domain.entities.task import TaskStatus
+from tests.helpers import create_project_in_memory, create_task_in_memory
 
 
 @pytest.mark.asyncio
-async def test_update_task_use_case_success() -> None:
-    repository = InMemoryTaskRepository()
+async def test_update_task_use_case_todo_to_in_progress() -> None:
     project_repository = InMemoryProjectRepository()
-    project_create_use_case = CreateProjectUseCase(project_repository)
-    project_command = CreateProjectCommand(
-        name="Test Project", description="Test Description"
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
     )
-    project_result = await project_create_use_case.execute(command=project_command)
-    create_use_case = CreateTaskUseCase(repository, project_repository)
-    command = CreateTaskCommand(
-        title="Test Task", description="Test Description", project_id=project_result.id
-    )
-    task = await create_use_case.execute(command=command)
 
-    update_use_case = UpdateTaskUseCase(repository, project_repository)
-    update_command = UpdateTaskCommand(task_id=task.id, status=TaskStatus.IN_PROGRESS)
-    updated_task = await update_use_case.execute(command=update_command)
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    updated_task = await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    )
+
     assert updated_task.status == TaskStatus.IN_PROGRESS
-
-    saved = await repository.get_by_id(updated_task.id)
-
+    saved = await task_repository.get_by_id(task_id)
     assert saved.status == TaskStatus.IN_PROGRESS
-    assert saved.title == task.title
-    assert saved.id == task.id
-    assert saved.project_id == project_result.id
+    assert saved.title == "Test Task"
+    assert saved.id == task_id
+    assert saved.project_id == project_id
     assert saved.description == "Test Description"
 
-    update_command = UpdateTaskCommand(task_id=task.id, status=TaskStatus.DONE)
-    updated_task = await update_use_case.execute(command=update_command)
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_in_progress_to_done() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    )
+
+    updated_task = await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    )
+
     assert updated_task.status == TaskStatus.DONE
 
 
 @pytest.mark.asyncio
 async def test_update_task_use_case_not_found() -> None:
-    repository = InMemoryTaskRepository()
     project_repository = InMemoryProjectRepository()
-    update_use_case = UpdateTaskUseCase(repository, project_repository)
-    update_command = UpdateTaskCommand(task_id=uuid4(), status=TaskStatus.IN_PROGRESS)
+    task_repository = InMemoryTaskRepository()
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
 
     with pytest.raises(TaskNotFoundError):
-        await update_use_case.execute(command=update_command)
+        await update_use_case.execute(
+            command=UpdateTaskCommand(task_id=uuid4(), status=TaskStatus.IN_PROGRESS)
+        )
 
 
 @pytest.mark.asyncio
-async def test_update_task_use_case_invalid_status_transition() -> None:
-    task_repository = InMemoryTaskRepository()
+async def test_update_task_use_case_invalid_transition_todo_to_done() -> None:
     project_repository = InMemoryProjectRepository()
-
-    project_create_use_case = CreateProjectUseCase(project_repository)
-    project_command = CreateProjectCommand(
-        name="Test Project", description="Test Description"
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
     )
-    project_result = await project_create_use_case.execute(command=project_command)
-
-    create_use_case = CreateTaskUseCase(task_repository, project_repository)
-    command = CreateTaskCommand(
-        title="Test Task", description="Test Description", project_id=project_result.id
-    )
-    task_result = await create_use_case.execute(command=command)
-
     update_use_case = UpdateTaskUseCase(task_repository, project_repository)
 
     with pytest.raises(InvalidTaskStatusTransitionError):
-        update_command = UpdateTaskCommand(
-            task_id=task_result.id, status=TaskStatus.DONE
+        await update_use_case.execute(
+            command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
         )
-        await update_use_case.execute(command=update_command)
 
-    update_command = UpdateTaskCommand(
-        task_id=task_result.id, status=TaskStatus.IN_PROGRESS
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_valid_transition_in_progress_to_todo() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
     )
-    updated_task = await update_use_case.execute(command=update_command)
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    )
 
-    assert updated_task.status == TaskStatus.IN_PROGRESS
-
-    update_command = UpdateTaskCommand(task_id=task_result.id, status=TaskStatus.TODO)
-    updated_task = await update_use_case.execute(command=update_command)
+    updated_task = await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.TODO)
+    )
 
     assert updated_task.status == TaskStatus.TODO
 
-    update_command = UpdateTaskCommand(
-        task_id=task_result.id, status=TaskStatus.IN_PROGRESS
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_invalid_transition_done_to_in_progress() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
     )
-    updated_task = await update_use_case.execute(command=update_command)
-
-    update_command = UpdateTaskCommand(task_id=task_result.id, status=TaskStatus.DONE)
-    updated_task = await update_use_case.execute(command=update_command)
-
-    assert updated_task.status == TaskStatus.DONE
-
-    with pytest.raises(InvalidTaskStatusTransitionError):
-        update_command = UpdateTaskCommand(
-            task_id=task_result.id, status=TaskStatus.IN_PROGRESS
-        )
-        await update_use_case.execute(command=update_command)
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    )
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    )
 
     with pytest.raises(InvalidTaskStatusTransitionError):
-        update_command = UpdateTaskCommand(
-            task_id=task_result.id, status=TaskStatus.TODO
+        await update_use_case.execute(
+            command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
         )
-        await update_use_case.execute(command=update_command)
 
-    update_command = UpdateTaskCommand(task_id=task_result.id, status=TaskStatus.DONE)
-    updated_task = await update_use_case.execute(command=update_command)
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_invalid_transition_done_to_todo() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    )
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    )
+
+    with pytest.raises(InvalidTaskStatusTransitionError):
+        await update_use_case.execute(
+            command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.TODO)
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_same_status_is_allowed() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    )
+    await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    )
+
+    updated_task = await update_use_case.execute(
+        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    )
 
     assert updated_task.status == TaskStatus.DONE

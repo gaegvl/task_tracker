@@ -1,110 +1,115 @@
-from datetime import datetime
 import pytest
 
-from src.application.use_cases.create_project import (
-    CreateProjectCommand,
-    CreateProjectUseCase,
-)
+from src.application.use_cases.list_tasks import ListTasksCommand, ListTaskUseCase
+from src.domain.entities.task import TaskStatus
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
-from src.application.use_cases.create_task import CreateTaskCommand, CreateTaskUseCase
-from src.application.use_cases.list_tasks import ListTasksCommand, ListTaskUseCase
-from src.domain.entities.task import Task, TaskStatus
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
-from uuid import UUID, uuid4
-
-
-async def create_some_tasks(
-    i: int, project_id: UUID, status: TaskStatus, repository: InMemoryTaskRepository
-) -> None:
-    for i in range(i):
-        id = uuid4()
-        task = Task(
-            id=id,
-            title=f"Test Task {i}",
-            description=f"Test Description {i}",
-            project_id=project_id,
-            status=status,
-            created_at=datetime.now(),
-        )
-        await repository.add(task=task)
+from tests.helpers import (
+    add_tasks_to_repository,
+    create_project_in_memory,
+    create_task_in_memory,
+)
 
 
 @pytest.mark.asyncio
-async def test_get_list_task_use_case() -> None:
+async def test_list_tasks_filters_by_project_id_and_status_todo() -> None:
     project_repository = InMemoryProjectRepository()
-    create_project_use_case = CreateProjectUseCase(
-        project_repository=project_repository
+    project_id_todo = await create_project_in_memory(
+        project_repository, name="project_id_todo"
     )
-    command = CreateProjectCommand(
-        name="project_id_todo", description="Test Description"
+    project_id_in_progress = await create_project_in_memory(
+        project_repository, name="project_id_in_progress"
     )
-    result = await create_project_use_case.execute(command=command)
-    project_id_todo = result.id
-
-    command = CreateProjectCommand(
-        name="project_id_in_progress", description="Test Description"
+    task_repository = InMemoryTaskRepository()
+    await create_task_in_memory(task_repository, project_repository, project_id_todo)
+    await add_tasks_to_repository(
+        15, project_id_in_progress, TaskStatus.IN_PROGRESS, task_repository
     )
-    result = await create_project_use_case.execute(command=command)
-    project_id_in_progress = result.id
 
-    command = CreateProjectCommand(
-        name="project_id_done", description="Test Description"
-    )
-    result = await create_project_use_case.execute(command=command)
-    project_id_done = result.id
-
-    repository = InMemoryTaskRepository()
-
-    create_task = CreateTaskUseCase(repository, project_repository)
-
-    await create_task.execute(
-        command=CreateTaskCommand(
-            title="Test Task",
-            description="Test Description",
-            project_id=project_id_todo,
+    use_case = ListTaskUseCase(task_repository)
+    result = await use_case.execute(
+        command=ListTasksCommand(
+            project_id=project_id_todo, status=TaskStatus.TODO, limit=3, offset=0
         )
     )
 
-    await create_some_tasks(
-        15, project_id_in_progress, TaskStatus.IN_PROGRESS, repository
-    )
-    await create_some_tasks(3, project_id_done, TaskStatus.DONE, repository)
-
-    create_use_case = ListTaskUseCase(repository)
-    command = ListTasksCommand(
-        project_id=project_id_todo, status=TaskStatus.TODO, limit=3, offset=0
-    )
-    result = await create_use_case.execute(command=command)
     assert len(result.items) == 1
     assert result.items[0].status == TaskStatus.TODO
 
-    command = ListTasksCommand(
-        project_id=project_id_in_progress,
-        status=TaskStatus.IN_PROGRESS,
-        limit=10,
-        offset=0,
+
+@pytest.mark.asyncio
+async def test_list_tasks_filters_by_project_id_and_status_in_progress() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id_todo = await create_project_in_memory(
+        project_repository, name="project_id_todo"
     )
-    result = await create_use_case.execute(command=command)
+    project_id_in_progress = await create_project_in_memory(
+        project_repository, name="project_id_in_progress"
+    )
+    task_repository = InMemoryTaskRepository()
+    await create_task_in_memory(task_repository, project_repository, project_id_todo)
+    await add_tasks_to_repository(
+        15, project_id_in_progress, TaskStatus.IN_PROGRESS, task_repository
+    )
+
+    use_case = ListTaskUseCase(task_repository)
+    result = await use_case.execute(
+        command=ListTasksCommand(
+            project_id=project_id_in_progress,
+            status=TaskStatus.IN_PROGRESS,
+            limit=10,
+            offset=0,
+        )
+    )
+
     assert len(result.items) == 10
     assert result.items[0].status == TaskStatus.IN_PROGRESS
 
-    command = ListTasksCommand(
-        project_id=project_id_in_progress,
-        status=TaskStatus.IN_PROGRESS,
-        limit=10,
-        offset=10,
+
+@pytest.mark.asyncio
+async def test_list_tasks_pagination_offset() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id_in_progress = await create_project_in_memory(
+        project_repository, name="project_id_in_progress"
     )
-    result = await create_use_case.execute(command=command)
+    task_repository = InMemoryTaskRepository()
+    await add_tasks_to_repository(
+        15, project_id_in_progress, TaskStatus.IN_PROGRESS, task_repository
+    )
+
+    use_case = ListTaskUseCase(task_repository)
+    result = await use_case.execute(
+        command=ListTasksCommand(
+            project_id=project_id_in_progress,
+            status=TaskStatus.IN_PROGRESS,
+            limit=10,
+            offset=10,
+        )
+    )
+
     assert len(result.items) == 5
     assert result.items[0].status == TaskStatus.IN_PROGRESS
 
-    command = ListTasksCommand(
-        project_id=project_id_done, status=TaskStatus.DONE, limit=3, offset=0
+
+@pytest.mark.asyncio
+async def test_list_tasks_filters_by_project_id_and_status_done() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id_done = await create_project_in_memory(
+        project_repository, name="project_id_done"
     )
-    result = await create_use_case.execute(command=command)
+    task_repository = InMemoryTaskRepository()
+    await add_tasks_to_repository(3, project_id_done, TaskStatus.DONE, task_repository)
+
+    use_case = ListTaskUseCase(task_repository)
+    result = await use_case.execute(
+        command=ListTasksCommand(
+            project_id=project_id_done, status=TaskStatus.DONE, limit=3, offset=0
+        )
+    )
+
     assert len(result.items) == 3
     assert result.items[0].status == TaskStatus.DONE
