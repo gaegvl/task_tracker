@@ -25,6 +25,7 @@ from src.domain.exceptions import (
     InvalidTaskTitleError,
     ProjectNotFoundError,
     TaskNotFoundError,
+    InvalidTaskStatusTransitionError,
 )
 from typing import Annotated
 
@@ -138,6 +139,11 @@ async def update_task(
             project_id=updated_task.project_id,
             status=TaskStatus(updated_task.status),
             created_at=updated_task.created_at,
+        )
+    except InvalidTaskStatusTransitionError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invalid task status transition",
         )
     except TaskNotFoundError:
         raise HTTPException(

@@ -6,7 +6,6 @@ from src.application.use_cases.get_task_by_id import GetTaskByIdResult
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.application.ports.project_repository import ProjectRepositoryPort
 from src.domain.entities.task import TaskStatus
-from src.domain.exceptions import ProjectNotFoundError
 
 
 @dataclass
@@ -29,10 +28,9 @@ class UpdateTaskUseCase:
 
     async def execute(self, command: UpdateTaskCommand) -> GetTaskByIdResult:
         task = await self.task_repository.get_by_id(command.task_id)
+        task.change_status(command.status)
         if command.project_id:
-            project = await self.project_repository.get_by_id(command.project_id)
-            if not project:
-                raise ProjectNotFoundError(command.project_id)
+            await self.project_repository.get_by_id(command.project_id)
         updated_task = replace(
             task,
             status=command.status,

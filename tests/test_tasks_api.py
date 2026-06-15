@@ -140,6 +140,17 @@ def test_update_task() -> None:
         assert updated_task.json()["description"] == "Test Description updated"
         assert updated_task.json()["project_id"] == project_id
 
+        updated_task = client.patch(
+            f"/tasks/{ids[2]}",
+            json={
+                "status": TaskStatus.DONE.value,
+                "title": "Test Task updated",
+                "description": "Test Description updated",
+                "project_id": project_id,
+            },
+        )
+        assert updated_task.status_code == 409
+
         get_task = client.get(f"/tasks/{i}")
 
         assert get_task.status_code == 200

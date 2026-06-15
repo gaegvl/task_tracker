@@ -11,7 +11,7 @@ from src.application.use_cases.update_task import UpdateTaskCommand, UpdateTaskU
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
-from src.domain.exceptions import TaskNotFoundError
+from src.domain.exceptions import InvalidTaskStatusTransitionError, TaskNotFoundError
 from src.application.use_cases.create_task import CreateTaskCommand, CreateTaskUseCase
 from src.domain.entities.task import TaskStatus
 
@@ -58,3 +58,68 @@ async def test_update_task_use_case_not_found() -> None:
 
     with pytest.raises(TaskNotFoundError):
         await update_use_case.execute(command=update_command)
+
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_invalid_status_transition() -> None:
+    task_repository = InMemoryTaskRepository()
+    project_repository = InMemoryProjectRepository()
+
+    project_create_use_case = CreateProjectUseCase(project_repository)
+    project_command = CreateProjectCommand(
+        name="Test Project", description="Test Description"
+    )
+    project_result = await project_create_use_case.execute(command=project_command)
+
+    create_use_case = CreateTaskUseCase(task_repository, project_repository)
+    command = CreateTaskCommand(
+        title="Test Task", description="Test Description", project_id=project_result.id
+    )
+    task_result = await create_use_case.execute(command=command)
+
+    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+
+    with pytest.raises(InvalidTaskStatusTransitionError):
+        update_command = UpdateTaskCommand(
+            task_id=task_result.id, status=TaskStatus.DONE
+        )
+        await update_use_case.execute(command=update_command)
+
+    update_command = UpdateTaskCommand(
+        task_id=task_result.id, status=TaskStatus.IN_PROGRESS
+    )
+    updated_task = await update_use_case.execute(command=update_command)
+
+    assert updated_task.status == TaskStatus.IN_PROGRESS
+
+    update_command = UpdateTaskCommand(task_id=task_result.id, status=TaskStatus.TODO)
+    updated_task = await update_use_case.execute(command=update_command)
+
+    assert updated_task.status == TaskStatus.TODO
+
+    update_command = UpdateTaskCommand(
+        task_id=task_result.id, status=TaskStatus.IN_PROGRESS
+    )
+    updated_task = await update_use_case.execute(command=update_command)
+
+    update_command = UpdateTaskCommand(task_id=task_result.id, status=TaskStatus.DONE)
+    updated_task = await update_use_case.execute(command=update_command)
+
+    assert updated_task.status == TaskStatus.DONE
+
+    with pytest.raises(InvalidTaskStatusTransitionError):
+        update_command = UpdateTaskCommand(
+            task_id=task_result.id, status=TaskStatus.IN_PROGRESS
+        )
+        await update_use_case.execute(command=update_command)
+
+    with pytest.raises(InvalidTaskStatusTransitionError):
+        update_command = UpdateTaskCommand(
+            task_id=task_result.id, status=TaskStatus.TODO
+        )
+        await update_use_case.execute(command=update_command)
+
+    update_command = UpdateTaskCommand(task_id=task_result.id, status=TaskStatus.DONE)
+    updated_task = await update_use_case.execute(command=update_command)
+
+    assert updated_task.status == TaskStatus.DONE

@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from enum import Enum
 from datetime import datetime
 from uuid import UUID
-from src.domain.exceptions import InvalidTaskTitleError
+from src.domain.exceptions import (
+    InvalidTaskStatusTransitionError,
+    InvalidTaskTitleError,
+)
 
 
 class TaskStatus(Enum):
@@ -25,3 +28,16 @@ class Task:
             raise InvalidTaskTitleError("Title cannot be empty")
         if len(self.title.strip()) < 3:
             raise InvalidTaskTitleError("Title must be at least 3 characters long")
+
+    def change_status(self, new_status: TaskStatus) -> None:
+        if (
+            self.status == TaskStatus.TODO
+            and new_status == TaskStatus.IN_PROGRESS
+            or self.status == TaskStatus.IN_PROGRESS
+            and new_status == TaskStatus.DONE
+            or self.status == TaskStatus.IN_PROGRESS
+            and new_status == TaskStatus.TODO
+            or self.status == new_status
+        ):
+            return
+        raise InvalidTaskStatusTransitionError(self.status, new_status)
