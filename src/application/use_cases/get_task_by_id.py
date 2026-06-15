@@ -26,7 +26,7 @@ class GetTaskByIdResult:
             title=task.title,
             description=task.description,
             project_id=task.project_id,
-            status=TaskStatus(task.status),
+            status=task.status,
             created_at=task.created_at,
         )
 
