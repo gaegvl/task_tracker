@@ -4,7 +4,8 @@ from src.domain.exceptions import TaskNotFoundError
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
 from src.infrastructure.db.models.task import Task as TaskModel
-from sqlalchemy import delete, exists, select, update
+from sqlalchemy import update, exists, select
+from datetime import datetime
 
 
 class SqlAlchemyTaskRepository(TaskRepositoryPort):
@@ -25,7 +26,9 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
 
     async def get_by_id(self, task_id: UUID) -> Task:
         task = await self.session.scalar(
-            select(TaskModel).where(TaskModel.id == task_id)
+            select(TaskModel).where(
+                TaskModel.id == task_id, TaskModel.deleted_at.is_(None)
+            )
         )
         if not task:
             raise TaskNotFoundError(task_id)
@@ -58,7 +61,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         limit: int,
         offset: int,
     ) -> list[Task]:
-        filters = []
+        filters = [TaskModel.deleted_at.is_(None)]
         if project_id:
             filters.append(TaskModel.project_id == project_id)
         if status:
@@ -83,10 +86,18 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         ]
 
     async def delete(self, task_id: UUID) -> None:
-        await self.session.execute(delete(TaskModel).where(TaskModel.id == task_id))
+        task = await self.get_by_id(task_id)
+        marked = task.mark_deleted(datetime.now())
+        await self.session.execute(
+            update(TaskModel)
+            .where(TaskModel.id == task_id, TaskModel.deleted_at.is_(None))
+            .values(deleted_at=marked.deleted_at)
+        )
         await self.session.commit()
 
     async def exists_by_project_id(self, project_id: UUID) -> bool:
-        exists_query = exists(TaskModel).where(TaskModel.project_id == project_id)
+        exists_query = exists(TaskModel).where(
+            TaskModel.project_id == project_id, TaskModel.deleted_at.is_(None)
+        )
         result = await self.session.scalar(select(TaskModel).where(exists_query))
         return bool(result)

@@ -3,6 +3,7 @@ from src.domain.exceptions import TaskNotFoundError
 from src.domain.entities.task import Task, TaskStatus
 from src.application.ports.task_repository import TaskRepositoryPort
 from operator import attrgetter
+from datetime import datetime
 
 
 class InMemoryTaskRepository(TaskRepositoryPort):
@@ -16,6 +17,8 @@ class InMemoryTaskRepository(TaskRepositoryPort):
         task = self.in_memory_task_repository.get(task_id)
         if not task:
             raise TaskNotFoundError(task_id)
+        if task.deleted_at is not None:
+            raise TaskNotFoundError(task_id)
         return task
 
     async def update(self, task: Task) -> None:
@@ -28,28 +31,31 @@ class InMemoryTaskRepository(TaskRepositoryPort):
         limit: int,
         offset: int,
     ) -> list[Task]:
+        filtered_tasks = [
+            task
+            for task in self.in_memory_task_repository.values()
+            if task.deleted_at is None
+        ]
+        if project_id:
+            filtered_tasks = [
+                task for task in filtered_tasks if task.project_id == project_id
+            ]
+        if status:
+            filtered_tasks = [task for task in filtered_tasks if task.status == status]
+
         sorted_task_by_created_at = sorted(
-            self.in_memory_task_repository.values(),
+            filtered_tasks,
             key=attrgetter("created_at"),
             reverse=True,
         )
-        if project_id:
-            sorted_task_by_created_at = [
-                task
-                for task in sorted_task_by_created_at
-                if task.project_id == project_id
-            ]
-        if status:
-            sorted_task_by_created_at = [
-                task for task in sorted_task_by_created_at if task.status == status
-            ]
         return sorted_task_by_created_at[offset : offset + limit]
 
     async def delete(self, task_id: UUID) -> None:
-        del self.in_memory_task_repository[task_id]
+        task = await self.get_by_id(task_id)
+        self.in_memory_task_repository[task_id] = task.mark_deleted(datetime.now())
 
     async def exists_by_project_id(self, project_id: UUID) -> bool:
         return any(
-            task.project_id == project_id
+            task.project_id == project_id and task.deleted_at is None
             for task in self.in_memory_task_repository.values()
         )

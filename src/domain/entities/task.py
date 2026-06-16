@@ -22,6 +22,7 @@ class Task:
     project_id: UUID
     status: TaskStatus
     created_at: datetime
+    deleted_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if not self.title.strip():
@@ -41,3 +42,14 @@ class Task:
         ):
             return
         raise InvalidTaskStatusTransitionError(self.status, new_status)
+
+    def mark_deleted(self, at: datetime) -> Task:
+        return Task(
+            id=self.id,
+            title=self.title,
+            description=self.description,
+            project_id=self.project_id,
+            status=self.status,
+            created_at=self.created_at,
+            deleted_at=at,
+        )
