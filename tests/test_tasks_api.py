@@ -280,3 +280,33 @@ def test_create_task_with_invalid_project_id_returns_404() -> None:
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
+
+
+def test_patch_deleted_task_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task = create_task_via_api(client, project_id)
+
+        client.delete(f"/tasks/{task}")
+
+        response = client.patch(
+            f"/tasks/{task}", json={"status": TaskStatus.IN_PROGRESS.value}
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}
+
+
+def test_delete_task_from_list_tasks() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_ids = create_tasks_via_api(client, 3, project_id)
+
+        client.delete(f"/tasks/{task_ids[0]}")
+
+        response = client.get(
+            "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
+        )
+
+        assert response.status_code == 200
+        assert len(response.json()) == 2
