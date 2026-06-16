@@ -20,6 +20,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             project_id=task.project_id,
             status=task.status.value,
             created_at=task.created_at,
+            deleted_at=None,
         )
         self.session.add(task_model)
         await self.session.commit()
@@ -44,7 +45,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
     async def update(self, task: Task) -> None:
         await self.session.execute(
             update(TaskModel)
-            .where(TaskModel.id == task.id)
+            .where(TaskModel.id == task.id, TaskModel.deleted_at.is_(None))
             .values(
                 title=task.title,
                 description=task.description,
