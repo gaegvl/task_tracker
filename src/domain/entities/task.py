@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from datetime import datetime
 from uuid import UUID
@@ -44,12 +44,4 @@ class Task:
         raise InvalidTaskStatusTransitionError(self.status, new_status)
 
     def mark_deleted(self, at: datetime) -> Task:
-        return Task(
-            id=self.id,
-            title=self.title,
-            description=self.description,
-            project_id=self.project_id,
-            status=self.status,
-            created_at=self.created_at,
-            deleted_at=at,
-        )
+        return replace(self, deleted_at=at)

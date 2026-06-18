@@ -9,6 +9,7 @@ from src.application.use_cases.create_project import (
 )
 from src.application.use_cases.create_task import CreateTaskCommand, CreateTaskUseCase
 from src.domain.entities.task import Task, TaskStatus
+from src.domain.entities.project import Project
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
@@ -18,7 +19,9 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
 
 
 def create_project_via_api(
-    client: TestClient, name: str = "Test Project", description: str = "Test Description"
+    client: TestClient,
+    name: str = "Test Project",
+    description: str = "Test Description",
 ) -> UUID:
     response = client.post(
         "/projects",
@@ -104,3 +107,18 @@ async def add_tasks_to_repository(
             created_at=datetime.now(),
         )
         await repository.add(task=task)
+
+
+async def add_projects_to_repository(
+    count: int,
+    repository: InMemoryProjectRepository,
+) -> None:
+    for index in range(count):
+        project = Project(
+            id=uuid4(),
+            name=f"Test Project {index}",
+            description=f"Test Description {index}",
+            created_at=datetime.now(),
+        )
+
+        await repository.add(project=project)

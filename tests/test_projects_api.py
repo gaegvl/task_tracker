@@ -127,3 +127,55 @@ def test_delete_project_has_tasks_returns_409() -> None:
 
         assert response.status_code == 409
         assert response.json() == {"detail": "Project has tasks"}
+
+
+def test_create_project_and_delete_project_and_get_project_by_id_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        client.delete(f"/projects/{project_id}")
+        response = client.get(f"/projects/{project_id}")
+        assert response.status_code == 404
+
+
+def test_double_delete_project_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        client.delete(f"/projects/{project_id}")
+        response = client.delete(f"/projects/{project_id}")
+        assert response.status_code == 404
+
+
+def test_update_after_delete_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+
+        client.delete(f"/projects/{project_id}")
+        response = client.patch(
+            f"/projects/{project_id}",
+            json={"name": "Updated Project", "description": "Updated Description"},
+        )
+        assert response.status_code == 404
+
+
+def test_create_task_in_deleted_project_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        client.delete(f"/projects/{project_id}")
+        response = client.post(
+            "/tasks",
+            json={
+                "title": "Test Task",
+                "description": "Test Description",
+                "project_id": str(project_id),
+            },
+        )
+        assert response.status_code == 404
+
+
+def test_delete_project_and_project_is_not_in_list_projects() -> None:
+    with TestClient(app) as client:
+        project_id_1 = create_project_via_api(client)
+        create_project_via_api(client)
+        client.delete(f"/projects/{project_id_1}")
+        response = client.get("/projects")
+        assert project_id_1 not in [project["id"] for project in response.json()]
