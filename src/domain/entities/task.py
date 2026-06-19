@@ -45,3 +45,6 @@ class Task:
 
     def mark_deleted(self, at: datetime) -> Task:
         return replace(self, deleted_at=at)
+
+    def restore(self) -> Task:
+        return replace(self, deleted_at=None)

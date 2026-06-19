@@ -20,3 +20,6 @@ class Project:
 
     def mark_deleted(self, at: datetime) -> Project:
         return replace(self, deleted_at=at)
+
+    def restore(self) -> Project:
+        return replace(self, deleted_at=None)

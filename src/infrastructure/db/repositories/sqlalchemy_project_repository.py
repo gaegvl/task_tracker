@@ -72,3 +72,24 @@ class SqlAlchemyProjectRepository(ProjectRepositoryPort):
             .values(deleted_at=marked.deleted_at)
         )
         await self.session.commit()
+
+    async def restore(self, project_id: UUID) -> Project:
+        project = await self.session.scalar(
+            select(ProjectModel).where(
+                ProjectModel.id == project_id, ProjectModel.deleted_at.isnot(None)
+            )
+        )
+        if not project:
+            raise ProjectNotFoundError(project_id)
+        await self.session.execute(
+            update(ProjectModel)
+            .where(ProjectModel.id == project_id)
+            .values(deleted_at=None)
+        )
+        await self.session.commit()
+        return Project(
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            created_at=project.created_at,
+        )

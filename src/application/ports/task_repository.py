@@ -27,3 +27,9 @@ class TaskRepositoryPort(Protocol):
 
     async def exists_by_project_id(self, project_id: UUID) -> bool:
         pass
+
+    async def restore(self, task_id: UUID) -> Task:
+        pass
+
+    async def restore_by_project_id(self, project_id: UUID) -> None:
+        pass

@@ -19,6 +19,8 @@ from src.infrastructure.db.repositories.sqlalchemy_task_repository import (
 from src.infrastructure.db.repositories.sqlalchemy_project_repository import (
     SqlAlchemyProjectRepository,
 )
+from src.application.use_cases.restore_task import RestoreTaskUseCase
+from src.application.use_cases.restore_project import RestoreProjectUseCase
 
 
 @dataclass
@@ -33,6 +35,8 @@ class ApplicationDependencies:
     list_projects: ListProjectsUseCase
     update_project: UpdateProjectUseCase
     delete_project: DeleteProjectUseCase
+    restore_task: RestoreTaskUseCase
+    restore_project: RestoreProjectUseCase
 
 
 async def get_session(request: Request) -> AsyncSession:
@@ -56,4 +60,6 @@ def get_application_dependencies(
         list_projects=ListProjectsUseCase(project_repository),
         update_project=UpdateProjectUseCase(project_repository),
         delete_project=DeleteProjectUseCase(project_repository, task_repository),
+        restore_task=RestoreTaskUseCase(task_repository),
+        restore_project=RestoreProjectUseCase(project_repository, task_repository),
     )

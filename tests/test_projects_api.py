@@ -3,7 +3,10 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from src.main import app
-from tests.helpers import create_project_via_api, create_task_via_api
+from tests.helpers import (
+    create_project_via_api,
+    create_task_via_api,
+)
 
 
 def test_create_project_returns_201() -> None:
@@ -179,3 +182,78 @@ def test_delete_project_and_project_is_not_in_list_projects() -> None:
         client.delete(f"/projects/{project_id_1}")
         response = client.get("/projects")
         assert project_id_1 not in [project["id"] for project in response.json()]
+
+
+def test_restore_project_returns_200() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        client.delete(f"/projects/{project_id}")
+        response = client.post(f"/projects/{project_id}/restore")
+        assert response.status_code == 200
+        project = client.get(f"/projects/{project_id}")
+        assert project.status_code == 200
+
+
+def test_restore_project_not_found_returns_404() -> None:
+    with TestClient(app) as client:
+        response = client.post(f"/projects/{uuid4()}/restore")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}
+
+
+def test_restore_project_after_delete_and_project_is_in_list_projects() -> None:
+    with TestClient(app) as client:
+        project_id_1 = create_project_via_api(client)
+        create_project_via_api(client)
+        response = client.get("/projects")
+        assert len(response.json()) == 2
+
+        client.delete(f"/projects/{project_id_1}")
+        response = client.get("/projects")
+        assert project_id_1 not in [project["id"] for project in response.json()]
+        response = client.post(f"/projects/{project_id_1}/restore")
+        assert response.status_code == 200
+        response = client.get("/projects")
+        assert len(response.json()) == 2
+        assert project_id_1 in [project["id"] for project in response.json()]
+
+
+def test_restore_project_and_create_task_returns_201() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        client.delete(f"/projects/{project_id}")
+        response = client.get(f"/projects/{project_id}")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}
+
+        response = client.post(f"/projects/{project_id}/restore")
+        assert response.status_code == 200
+
+        response = client.post(
+            "/tasks",
+            json={
+                "title": "Test Task",
+                "description": "Test Description",
+                "project_id": str(project_id),
+            },
+        )
+        assert response.status_code == 201
+
+
+def test_restore_project_and_restore_task_returns_200() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id_1 = create_task_via_api(client, project_id)
+        task_id_2 = create_task_via_api(client, project_id)
+        client.delete(f"/tasks/{task_id_1}")
+        client.delete(f"/tasks/{task_id_2}")
+        response = client.delete(f"/projects/{project_id}")
+        assert response.status_code == 204
+
+        response = client.post(f"/projects/{project_id}/restore")
+        assert response.status_code == 200
+
+        response = client.get(
+            "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
+        )
+        assert len(response.json()) == 2

@@ -310,3 +310,61 @@ def test_delete_task_from_list_tasks() -> None:
 
         assert response.status_code == 200
         assert len(response.json()) == 2
+
+
+def test_restore_task_returns_200() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        client.delete(f"/tasks/{task_id}")
+
+        response = client.post(f"/tasks/{task_id}/restore")
+
+        assert response.status_code == 200
+        task = client.get(f"/tasks/{task_id}")
+
+        assert task.status_code == 200
+
+
+def test_restore_task_not_found_returns_404() -> None:
+    with TestClient(app) as client:
+        response = client.post(f"/tasks/{uuid4()}/restore")
+
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}
+
+
+def test_restore_task_active_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+
+        response = client.post(f"/tasks/{task_id}/restore")
+
+        assert response.status_code == 404
+
+
+def test_restore_task_after_delete_and_task_is_in_list_tasks() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        create_tasks_via_api(client, 3, project_id)
+        client.delete(f"/tasks/{task_id}")
+
+        list_task = client.get(
+            "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
+        )
+        assert len(list_task.json()) == 3
+        assert task_id not in [task["id"] for task in list_task.json()]
+
+        response = client.post(f"/tasks/{task_id}/restore")
+
+        assert response.status_code == 200
+        task = client.get(f"/tasks/{task_id}")
+        assert task.status_code == 200
+
+        list_task = client.get(
+            "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
+        )
+        assert len(list_task.json()) == 4
+        assert task_id in [task["id"] for task in list_task.json()]

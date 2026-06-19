@@ -34,3 +34,11 @@ class InMemoryProjectRepository(ProjectRepositoryPort):
         self.in_memory_project_repository[project_id] = project.mark_deleted(
             datetime.now()
         )
+
+    async def restore(self, project_id: UUID) -> Project:
+        project = self.in_memory_project_repository.get(project_id)
+        if not project or project.deleted_at is None:
+            raise ProjectNotFoundError(project_id)
+        restored_project = project.restore()
+        self.in_memory_project_repository[project_id] = restored_project
+        return restored_project

@@ -18,3 +18,6 @@ class ProjectRepositoryPort(Protocol):
 
     async def delete(self, project_id: UUID) -> None:
         pass
+
+    async def restore(self, project_id: UUID) -> Project:
+        pass

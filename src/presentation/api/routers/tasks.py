@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Body, Path, status, Depends, HTTPException
+from src.application.use_cases.restore_task import RestoreTaskCommand
 from src.application.use_cases.delete_task import DeleteTaskCommand
 from src.application.use_cases.update_task import UpdateTaskCommand
 from src.domain.entities.task import TaskStatus
@@ -171,3 +172,31 @@ async def delete_task(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+@router.post(
+    "/{task_id}/restore", response_model=TaskResponse, status_code=status.HTTP_200_OK
+)
+async def restore_task(
+    task_id: Annotated[UUID, Path()],
+    deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+) -> TaskResponse:
+    command = RestoreTaskCommand(task_id=task_id)
+    try:
+        result = await deps.restore_task.execute(command=command)
+    except TaskNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
+    except DomainError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+    return TaskResponse(
+        id=result.id,
+        title=result.title,
+        description=result.description,
+        project_id=result.project_id,
+        status=TaskStatus(result.status),
+        created_at=result.created_at,
+    )

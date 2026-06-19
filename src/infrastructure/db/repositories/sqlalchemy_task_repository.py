@@ -102,3 +102,32 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         )
         result = await self.session.scalar(select(TaskModel).where(exists_query))
         return bool(result)
+
+    async def restore(self, task_id: UUID) -> Task:
+        task = await self.session.scalar(
+            select(TaskModel).where(
+                TaskModel.id == task_id, TaskModel.deleted_at.isnot(None)
+            )
+        )
+        if not task:
+            raise TaskNotFoundError(task_id)
+        await self.session.execute(
+            update(TaskModel).where(TaskModel.id == task_id).values(deleted_at=None)
+        )
+        await self.session.commit()
+        return Task(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            project_id=task.project_id,
+            status=TaskStatus(task.status),
+            created_at=task.created_at,
+        )
+
+    async def restore_by_project_id(self, project_id: UUID) -> None:
+        await self.session.execute(
+            update(TaskModel)
+            .where(TaskModel.project_id == project_id, TaskModel.deleted_at.isnot(None))
+            .values(deleted_at=None)
+        )
+        await self.session.commit()

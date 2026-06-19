@@ -59,3 +59,17 @@ class InMemoryTaskRepository(TaskRepositoryPort):
             task.project_id == project_id and task.deleted_at is None
             for task in self.in_memory_task_repository.values()
         )
+
+    async def restore(self, task_id: UUID) -> Task:
+        task = self.in_memory_task_repository.get(task_id)
+        if not task or task.deleted_at is None:
+            raise TaskNotFoundError(task_id)
+        restored_task = task.restore()
+        self.in_memory_task_repository[task_id] = restored_task
+        return restored_task
+
+    async def restore_by_project_id(self, project_id: UUID) -> None:
+        for id, task in self.in_memory_task_repository.items():
+            if task.project_id == project_id and task.deleted_at is not None:
+                restored_task = task.restore()
+                self.in_memory_task_repository[id] = restored_task

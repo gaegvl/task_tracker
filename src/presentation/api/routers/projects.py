@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException, status, Depends, Path
 from typing import Annotated
+from src.application.use_cases.restore_project import RestoreProjectCommand
 from src.domain.exceptions import (
     DomainError,
     InvalidProjectNameError,
@@ -164,3 +165,31 @@ async def delete_project(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+@router.post(
+    "/{project_id}/restore",
+    response_model=CreateProjectResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def restore_project(
+    project_id: Annotated[UUID, Path()],
+    deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+) -> CreateProjectResponse:
+    command = RestoreProjectCommand(project_id=project_id)
+    try:
+        result = await deps.restore_project.execute(command=command)
+    except ProjectNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+    except DomainError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+    return CreateProjectResponse(
+        id=result.id,
+        name=result.name,
+        description=result.description,
+        created_at=result.created_at,
+    )
