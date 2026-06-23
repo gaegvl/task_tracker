@@ -1,6 +1,9 @@
 import pytest
 from uuid import uuid4
 
+from src.infrastructure.db.repositories.in_memory_task_status_history_repository import (
+    InMemoryTaskStatusHistoryRepository,
+)
 from src.application.use_cases.update_task import UpdateTaskCommand, UpdateTaskUseCase
 from src.domain.entities.task import TaskStatus
 from src.domain.exceptions import InvalidTaskStatusTransitionError, TaskNotFoundError
@@ -21,8 +24,13 @@ async def test_update_task_use_case_todo_to_in_progress() -> None:
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
 
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
     updated_task = await update_use_case.execute(
         command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
     )
@@ -44,7 +52,12 @@ async def test_update_task_use_case_in_progress_to_done() -> None:
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
     await update_use_case.execute(
         command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
     )
@@ -60,7 +73,12 @@ async def test_update_task_use_case_in_progress_to_done() -> None:
 async def test_update_task_use_case_not_found() -> None:
     project_repository = InMemoryProjectRepository()
     task_repository = InMemoryTaskRepository()
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
 
     with pytest.raises(TaskNotFoundError):
         await update_use_case.execute(
@@ -76,7 +94,12 @@ async def test_update_task_use_case_invalid_transition_todo_to_done() -> None:
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
 
     with pytest.raises(InvalidTaskStatusTransitionError):
         await update_use_case.execute(
@@ -92,7 +115,12 @@ async def test_update_task_use_case_valid_transition_in_progress_to_todo() -> No
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
     await update_use_case.execute(
         command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
     )
@@ -112,7 +140,12 @@ async def test_update_task_use_case_invalid_transition_done_to_in_progress() -> 
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
     await update_use_case.execute(
         command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
     )
@@ -134,7 +167,12 @@ async def test_update_task_use_case_invalid_transition_done_to_todo() -> None:
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
     await update_use_case.execute(
         command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
     )
@@ -156,7 +194,12 @@ async def test_update_task_use_case_same_status_is_allowed() -> None:
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    update_use_case = UpdateTaskUseCase(task_repository, project_repository)
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = UpdateTaskUseCase(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
     await update_use_case.execute(
         command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
     )

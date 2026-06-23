@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from typing import AsyncGenerator
+from src.presentation.api.routers import task_status_history
 from src.presentation.api.routers import health, tasks, projects
 from src.infrastructure.config import get_settings
 from src.infrastructure.db.engine import create_engine
@@ -22,3 +23,4 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(tasks.router)
 app.include_router(projects.router)
+app.include_router(task_status_history.router)

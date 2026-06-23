@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from typing import Annotated
 from fastapi import Request, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.application.use_cases.list_task_status_history import (
+    ListTaskStatusHistoryUseCase,
+)
 from src.application.use_cases.list_tasks import ListTaskUseCase
 from src.application.use_cases.create_task import CreateTaskUseCase
 from src.application.use_cases.get_task_by_id import GetTaskByIdUseCase
@@ -15,6 +18,9 @@ from src.application.use_cases.delete_project import DeleteProjectUseCase
 from src.application.use_cases.list_projects import ListProjectsUseCase
 from src.infrastructure.db.repositories.sqlalchemy_task_repository import (
     SqlAlchemyTaskRepository,
+)
+from src.infrastructure.db.repositories.sqlalchemy_task_status_history_repository import (
+    SqlAlchemyTaskStatusHistoryRepository,
 )
 from src.infrastructure.db.repositories.sqlalchemy_project_repository import (
     SqlAlchemyProjectRepository,
@@ -37,6 +43,7 @@ class ApplicationDependencies:
     delete_project: DeleteProjectUseCase
     restore_task: RestoreTaskUseCase
     restore_project: RestoreProjectUseCase
+    list_task_status_history: ListTaskStatusHistoryUseCase
 
 
 async def get_session(request: Request) -> AsyncSession:
@@ -49,11 +56,14 @@ def get_application_dependencies(
 ) -> ApplicationDependencies:
     task_repository = SqlAlchemyTaskRepository(session)
     project_repository = SqlAlchemyProjectRepository(session)
+    task_status_history_repository = SqlAlchemyTaskStatusHistoryRepository(session)
     return ApplicationDependencies(
         create_task=CreateTaskUseCase(task_repository, project_repository),
         get_task_by_id=GetTaskByIdUseCase(task_repository),
         list_tasks=ListTaskUseCase(task_repository),
-        update_task=UpdateTaskUseCase(task_repository, project_repository),
+        update_task=UpdateTaskUseCase(
+            task_repository, project_repository, task_status_history_repository
+        ),
         delete_task=DeleteTaskUseCase(task_repository),
         create_project=CreateProjectUseCase(project_repository),
         get_project_by_id=GetProjectByIdUseCase(project_repository),
@@ -62,4 +72,7 @@ def get_application_dependencies(
         delete_project=DeleteProjectUseCase(project_repository, task_repository),
         restore_task=RestoreTaskUseCase(task_repository),
         restore_project=RestoreProjectUseCase(project_repository, task_repository),
+        list_task_status_history=ListTaskStatusHistoryUseCase(
+            task_status_history_repository, task_repository
+        ),
     )

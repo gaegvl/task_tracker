@@ -27,7 +27,11 @@ async def _setup_and_clean_db():
     session_factory = create_session_factory(engine)
 
     async with session_factory() as session:
-        await session.execute(text("TRUNCATE projects, tasks RESTART IDENTITY CASCADE"))
+        await session.execute(
+            text(
+                "TRUNCATE projects, tasks, task_status_changes RESTART IDENTITY CASCADE"
+            )
+        )
         await session.commit()
 
     try:
