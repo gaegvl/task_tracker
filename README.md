@@ -1,5 +1,7 @@
 # Task Tracker
 
+![CI](https://github.com/gaegvl/task_tracker/actions/workflows/ci.yaml/badge.svg)
+
 REST API для задач: создание, список с фильтрами, получение и обновление. Проект построен по слоям (domain → application → infrastructure → presentation) с портами и use case’ами. Данные хранятся в PostgreSQL (async SQLAlchemy + Alembic).
 
 ## Стек
@@ -279,6 +281,15 @@ uv run pre-commit install
 
 # проверить все файлы вручную
 uv run pre-commit run --all-files
+
+## CI
+
+На каждый push и pull request [GitHub Actions](https://github.com/features/actions) запускает:
+- `ruff check .` и `ruff format --check .`
+- `mypy src`
+- `pytest` (с PostgreSQL в service container)
+
+Статус последнего прогона: вкладка **Actions** в репозитории на GitHub.
 
 ## Структура каталогов
 
