@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
+
 from src.domain.entities.project import Project
 
 
@@ -16,7 +18,7 @@ class ProjectRepositoryPort(Protocol):
     async def update(self, project: Project) -> None:
         pass
 
-    async def delete(self, project_id: UUID) -> None:
+    async def delete(self, project_id: UUID, deleted_at: datetime) -> None:
         pass
 
     async def restore(self, project_id: UUID) -> Project:

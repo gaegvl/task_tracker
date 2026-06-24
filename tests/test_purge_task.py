@@ -1,10 +1,10 @@
 import pytest
 
+from src.application.use_cases.delete_task import DeleteTaskCommand
 from src.application.use_cases.get_task_by_id import (
     GetTaskByIdCommand,
     GetTaskByIdUseCase,
 )
-from src.application.use_cases.delete_task import DeleteTaskCommand, DeleteTaskUseCase
 from src.application.use_cases.purge_task import PurgeTaskCommand, PurgeTaskUseCase
 from src.domain.exceptions import TaskNotFoundError
 from src.infrastructure.db.repositories.in_memory_project_repository import (
@@ -13,7 +13,11 @@ from src.infrastructure.db.repositories.in_memory_project_repository import (
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
-from tests.helpers import create_project_in_memory, create_task_in_memory
+from tests.helpers import (
+    create_project_in_memory,
+    create_task_in_memory,
+    make_delete_task_use_case,
+)
 
 
 @pytest.mark.asyncio
@@ -41,7 +45,7 @@ async def test_purge_soft_deleted_task() -> None:
     purge_task_use_case = PurgeTaskUseCase(task_repository)
     command = PurgeTaskCommand(task_id=task_id)
 
-    delete_use_case = DeleteTaskUseCase(task_repository)
+    delete_use_case = make_delete_task_use_case(task_repository=task_repository)
     delete_command = DeleteTaskCommand(task_id=task_id)
     await delete_use_case.execute(command=delete_command)
 

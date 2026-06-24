@@ -20,3 +20,5 @@ src/.env
 # Test/cache artifacts
 .pytest_cache/
 /learning_steps
+
+.DS_Store

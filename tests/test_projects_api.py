@@ -1,9 +1,8 @@
-from uuid import uuid4
-
 from fastapi.testclient import TestClient
 
 from src.main import app
 from tests.helpers import (
+    TEST_ID_GENERATOR,
     create_project_via_api,
     create_task_via_api,
     create_tasks_via_api,
@@ -56,7 +55,7 @@ def test_get_project_by_id_returns_project() -> None:
 
 def test_get_project_by_id_not_found() -> None:
     with TestClient(app) as client:
-        response = client.get(f"/projects/{uuid4()}")
+        response = client.get(f"/projects/{TEST_ID_GENERATOR.new_id()}")
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
@@ -97,7 +96,7 @@ def test_update_project_returns_200() -> None:
 def test_update_project_not_found() -> None:
     with TestClient(app) as client:
         response = client.patch(
-            f"/projects/{uuid4()}",
+            f"/projects/{TEST_ID_GENERATOR.new_id()}",
             json={"name": "Updated Project", "description": "Updated Description"},
         )
 
@@ -116,7 +115,7 @@ def test_delete_project_returns_204() -> None:
 
 def test_delete_project_not_found() -> None:
     with TestClient(app) as client:
-        response = client.delete(f"/projects/{uuid4()}")
+        response = client.delete(f"/projects/{TEST_ID_GENERATOR.new_id()}")
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
@@ -197,7 +196,7 @@ def test_restore_project_returns_200() -> None:
 
 def test_restore_project_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.post(f"/projects/{uuid4()}/restore")
+        response = client.post(f"/projects/{TEST_ID_GENERATOR.new_id()}/restore")
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
 

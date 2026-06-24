@@ -1,7 +1,10 @@
 from datetime import datetime
 from uuid import UUID
-from sqlalchemy import ForeignKey, String, DateTime, UUID as UUIDType
+
+from sqlalchemy import UUID as UUIDType
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from src.infrastructure.db.session import Base
 
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, replace
 from datetime import datetime
 from uuid import UUID
+
 from src.domain.exceptions import InvalidProjectNameError
 
 

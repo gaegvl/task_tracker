@@ -1,35 +1,37 @@
+from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Body, Path, status, Depends, HTTPException
-from src.application.use_cases.purge_task import PurgeTaskCommand
-from src.application.use_cases.restore_task import RestoreTaskCommand
-from src.application.use_cases.delete_task import DeleteTaskCommand
-from src.application.use_cases.update_task import UpdateTaskCommand
-from src.domain.entities.task import TaskStatus
-from src.presentation.api.schemas.task import (
-    CreateTaskResponse,
-    CreateTaskRequest,
-    TaskResponse,
-    ListTasksParams,
-    UpdateTaskRequest,
-)
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+
 from src.application.use_cases.create_task import (
     CreateTaskCommand,
     CreateTaskResult,
 )
+from src.application.use_cases.delete_task import DeleteTaskCommand
 from src.application.use_cases.get_task_by_id import GetTaskByIdCommand
 from src.application.use_cases.list_tasks import ListTasksCommand
+from src.application.use_cases.purge_task import PurgeTaskCommand
+from src.application.use_cases.restore_task import RestoreTaskCommand
+from src.application.use_cases.update_task import UpdateTaskCommand
+from src.domain.entities.task import TaskStatus
+from src.domain.exceptions import (
+    DomainError,
+    InvalidTaskStatusTransitionError,
+    InvalidTaskTitleError,
+    ProjectNotFoundError,
+    TaskNotFoundError,
+)
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
 )
-from src.domain.exceptions import (
-    DomainError,
-    InvalidTaskTitleError,
-    ProjectNotFoundError,
-    TaskNotFoundError,
-    InvalidTaskStatusTransitionError,
+from src.presentation.api.schemas.task import (
+    CreateTaskRequest,
+    CreateTaskResponse,
+    ListTasksParams,
+    TaskResponse,
+    UpdateTaskRequest,
 )
-from typing import Annotated
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 

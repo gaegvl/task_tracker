@@ -1,8 +1,9 @@
 import operator
+from uuid import UUID
+
 from src.application.ports.task_status_history_repository import (
     TaskStatusHistoryRepositoryPort,
 )
-from uuid import UUID
 from src.domain.entities.task_status_change import TaskStatusChange
 
 

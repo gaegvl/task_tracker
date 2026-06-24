@@ -4,10 +4,9 @@ import subprocess
 import pytest_asyncio
 from sqlalchemy import text
 
-from src.infrastructure.config import get_settings, Settings
+from src.infrastructure.config import Settings, get_settings
 from src.infrastructure.db.engine import create_engine
 from src.infrastructure.db.session import create_session_factory
-
 
 # Подключаем приложение к test-базе
 _settings = Settings()

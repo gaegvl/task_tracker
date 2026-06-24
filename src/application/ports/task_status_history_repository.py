@@ -1,5 +1,6 @@
 from typing import Protocol
 from uuid import UUID
+
 from src.domain.entities.task_status_change import TaskStatusChange
 
 

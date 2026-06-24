@@ -1,5 +1,6 @@
 from dataclasses import dataclass, replace
 from uuid import UUID
+
 from src.application.ports.project_repository import ProjectRepositoryPort
 from src.application.use_cases.create_project import CreateProjectResult
 
@@ -7,7 +8,7 @@ from src.application.use_cases.create_project import CreateProjectResult
 @dataclass(frozen=True)
 class UpdateProjectCommand:
     id: UUID
-    name: str
+    name: str | None
     description: str | None
 
 

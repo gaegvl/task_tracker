@@ -1,11 +1,14 @@
+from datetime import datetime
 from uuid import UUID
+
+from sqlalchemy import delete, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.domain.exceptions import TaskNotFoundError
+from sqlalchemy.sql.elements import ColumnElement
+
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
+from src.domain.exceptions import TaskNotFoundError
 from src.infrastructure.db.models.task import Task as TaskModel
-from sqlalchemy import delete, update, exists, select
-from datetime import datetime
 
 
 class SqlAlchemyTaskRepository(TaskRepositoryPort):
@@ -62,7 +65,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         limit: int,
         offset: int,
     ) -> list[Task]:
-        filters = [TaskModel.deleted_at.is_(None)]
+        filters: list[ColumnElement[bool]] = [TaskModel.deleted_at.is_(None)]
         if project_id:
             filters.append(TaskModel.project_id == project_id)
         if status:
@@ -86,9 +89,9 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             for task in tasks
         ]
 
-    async def delete(self, task_id: UUID) -> None:
+    async def delete(self, task_id: UUID, deleted_at: datetime) -> None:
         task = await self.get_by_id(task_id)
-        marked = task.mark_deleted(datetime.now())
+        marked = task.mark_deleted(deleted_at)
         await self.session.execute(
             update(TaskModel)
             .where(TaskModel.id == task_id, TaskModel.deleted_at.is_(None))

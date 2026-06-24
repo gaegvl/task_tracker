@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
+
+from src.application.ports.clock import ClockPort
 from src.application.ports.project_repository import ProjectRepositoryPort
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.exceptions import ProjectHasTasksError
@@ -15,12 +17,14 @@ class DeleteProjectUseCase:
         self,
         project_repository: ProjectRepositoryPort,
         task_repository: TaskRepositoryPort,
+        clock: ClockPort,
     ) -> None:
         self.project_repository = project_repository
         self.task_repository = task_repository
+        self.clock = clock
 
     async def execute(self, command: DeleteProjectCommand) -> None:
         project = await self.project_repository.get_by_id(command.id)
         if await self.task_repository.exists_by_project_id(project.id):
             raise ProjectHasTasksError(project.id)
-        await self.project_repository.delete(project.id)
+        await self.project_repository.delete(project.id, self.clock.now())

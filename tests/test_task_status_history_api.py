@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
-from src.main import app
 
+from src.main import app
 from tests.helpers import create_project_via_api, create_task_via_api
 
 

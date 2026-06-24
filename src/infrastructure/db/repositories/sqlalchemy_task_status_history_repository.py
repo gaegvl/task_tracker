@@ -1,12 +1,15 @@
+from collections.abc import Sequence
 from uuid import UUID
-from sqlalchemy import select
+
+from sqlalchemy import ScalarResult, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.domain.entities.task_status_change import TaskStatusChange
-from src.domain.entities.task import TaskStatus
-from src.infrastructure.db.models import TaskStatusChange as TaskStatusChangeModel
+
 from src.application.ports.task_status_history_repository import (
     TaskStatusHistoryRepositoryPort,
 )
+from src.domain.entities.task import TaskStatus
+from src.domain.entities.task_status_change import TaskStatusChange
+from src.infrastructure.db.models import TaskStatusChange as TaskStatusChangeModel
 
 
 class SqlAlchemyTaskStatusHistoryRepository(TaskStatusHistoryRepositoryPort):
@@ -27,14 +30,14 @@ class SqlAlchemyTaskStatusHistoryRepository(TaskStatusHistoryRepositoryPort):
     async def list_by_task_id(
         self, task_id: UUID, limit: int, offset: int
     ) -> list[TaskStatusChange]:
-        result = await self.session.scalars(
+        result: ScalarResult[TaskStatusChangeModel] = await self.session.scalars(
             select(TaskStatusChangeModel)
             .where(TaskStatusChangeModel.task_id == task_id)
             .order_by(TaskStatusChangeModel.changed_at.asc())
             .offset(offset)
             .limit(limit)
         )
-        result = result.all()
+        task_status_change_models: Sequence[TaskStatusChangeModel] = result.all()
         return [
             TaskStatusChange(
                 id=change.id,
@@ -43,5 +46,5 @@ class SqlAlchemyTaskStatusHistoryRepository(TaskStatusHistoryRepositoryPort):
                 to_state=TaskStatus(change.to_state),
                 changed_at=change.changed_at,
             )
-            for change in result
+            for change in task_status_change_models
         ]

@@ -1,13 +1,16 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from typing import AsyncGenerator
-from src.presentation.api.routers import task_status_history
-from src.presentation.api.routers import health, tasks, projects
+
 from src.infrastructure.config import get_settings
 from src.infrastructure.db.engine import create_engine
 from src.infrastructure.db.session import create_session_factory
+from src.presentation.api.routers import health, projects, task_status_history, tasks
 
 
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     settings = get_settings()
     engine = create_engine(settings)
     session_factory = create_session_factory(engine)

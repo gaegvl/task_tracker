@@ -1,20 +1,16 @@
-from datetime import datetime
-from uuid import uuid4
 import pytest
-from src.application.use_cases.delete_project import (
-    DeleteProjectCommand,
-    DeleteProjectUseCase,
-)
-from src.domain.exceptions import (
-    ProjectHasTasksError,
-    ProjectNotFoundError,
-)
-from src.application.use_cases.delete_task import DeleteTaskCommand, DeleteTaskUseCase
+
+from src.application.use_cases.delete_project import DeleteProjectCommand
+from src.application.use_cases.delete_task import DeleteTaskCommand
 from src.application.use_cases.purge_project import (
     PurgeProjectCommand,
     PurgeProjectUseCase,
 )
 from src.domain.entities.task import Task, TaskStatus
+from src.domain.exceptions import (
+    ProjectHasTasksError,
+    ProjectNotFoundError,
+)
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
@@ -22,9 +18,13 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    TEST_CLOCK,
+    TEST_ID_GENERATOR,
     add_tasks_to_repository,
     create_project_in_memory,
     create_task_in_memory,
+    make_delete_project_use_case,
+    make_delete_task_use_case,
 )
 
 
@@ -43,13 +43,15 @@ async def test_purge_project_cascade() -> None:
             project_id=project_id, status=TaskStatus.TODO, limit=10, offset=0
         )
     ]
-    delete_use_case = DeleteTaskUseCase(task_repository)
+    delete_use_case = make_delete_task_use_case(task_repository=task_repository)
 
     for task_id in task_ids:
         delete_command = DeleteTaskCommand(task_id=task_id)
         await delete_use_case.execute(command=delete_command)
 
-    delete_project_use_case = DeleteProjectUseCase(project_repository, task_repository)
+    delete_project_use_case = make_delete_project_use_case(
+        project_repository, task_repository
+    )
     delete_command = DeleteProjectCommand(id=project_id)
     await delete_project_use_case.execute(command=delete_command)
 
@@ -70,21 +72,23 @@ async def test_purge_project_with_active_tasks() -> None:
     purge_project_use_case = PurgeProjectUseCase(project_repository, task_repository)
     command = PurgeProjectCommand(project_id=project_id)
 
-    delete_task_use_case = DeleteTaskUseCase(task_repository)
+    delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
     delete_command = DeleteTaskCommand(task_id=task_id)
     await delete_task_use_case.execute(command=delete_command)
 
-    delete_project_use_case = DeleteProjectUseCase(project_repository, task_repository)
+    delete_project_use_case = make_delete_project_use_case(
+        project_repository, task_repository
+    )
     delete_command = DeleteProjectCommand(id=project_id)
     await delete_project_use_case.execute(command=delete_command)
 
     task = Task(
-        id=uuid4(),
+        id=TEST_ID_GENERATOR.new_id(),
         title="Test Task",
         description="Test Description",
         project_id=project_id,
         status=TaskStatus.TODO,
-        created_at=datetime.now(),
+        created_at=TEST_CLOCK.now(),
         deleted_at=None,
     )
     await task_repository.add(task=task)
@@ -107,7 +111,7 @@ async def test_purge_isolate_by_project_id() -> None:
     )
     purge_project_use_case = PurgeProjectUseCase(project_repository, task_repository)
 
-    delete_use_case = DeleteTaskUseCase(task_repository)
+    delete_use_case = make_delete_task_use_case(task_repository=task_repository)
     delete_command = DeleteTaskCommand(task_id=task_id_1)
     await delete_use_case.execute(command=delete_command)
 
@@ -115,7 +119,9 @@ async def test_purge_isolate_by_project_id() -> None:
     await delete_use_case.execute(command=delete_command)
 
     command = PurgeProjectCommand(project_id=project_id_2)
-    delete_project_use_case = DeleteProjectUseCase(project_repository, task_repository)
+    delete_project_use_case = make_delete_project_use_case(
+        project_repository, task_repository
+    )
     delete_command = DeleteProjectCommand(id=project_id_2)
     await delete_project_use_case.execute(command=delete_command)
 

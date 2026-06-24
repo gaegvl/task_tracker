@@ -1,14 +1,16 @@
 from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Path, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+
 from src.application.use_cases.list_task_status_history import (
     ListTaskStatusHistoryCommand,
 )
+from src.domain.exceptions import DomainError, TaskNotFoundError
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
 )
-from src.domain.exceptions import DomainError, TaskNotFoundError
 from src.presentation.api.schemas.task_status_history import (
     ListTaskStatusHistoryParams,
     TaskStatusChangeResponse,

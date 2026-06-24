@@ -1,6 +1,5 @@
-from uuid import UUID
-
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 if TYPE_CHECKING:
     from src.domain.entities.task import TaskStatus

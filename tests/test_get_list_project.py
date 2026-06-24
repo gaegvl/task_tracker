@@ -1,9 +1,6 @@
 import pytest
 
-from src.application.use_cases.create_project import (
-    CreateProjectCommand,
-    CreateProjectUseCase,
-)
+from src.application.use_cases.create_project import CreateProjectCommand
 from src.application.use_cases.list_projects import (
     ListProjectsCommand,
     ListProjectsUseCase,
@@ -11,12 +8,13 @@ from src.application.use_cases.list_projects import (
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
+from tests.helpers import make_create_project_use_case
 
 
 @pytest.mark.asyncio
 async def test_get_list_project_use_case() -> None:
     repository = InMemoryProjectRepository()
-    create_use_case = CreateProjectUseCase(project_repository=repository)
+    create_use_case = make_create_project_use_case(project_repository=repository)
     command = CreateProjectCommand(
         name="Test Project 1", description="Test Description"
     )

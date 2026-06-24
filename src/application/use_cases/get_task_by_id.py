@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from uuid import UUID
 from datetime import datetime
-from src.domain.entities.task import TaskStatus, Task
+from uuid import UUID
+
 from src.application.ports.task_repository import TaskRepositoryPort
+from src.domain.entities.task import Task, TaskStatus
 
 
 @dataclass(frozen=True)
@@ -20,7 +21,7 @@ class GetTaskByIdResult:
     created_at: datetime
 
     @classmethod
-    def from_entity(cls, task: Task) -> "GetTaskByIdResult":
+    def from_entity(cls, task: Task) -> GetTaskByIdResult:
         return cls(
             id=task.id,
             title=task.title,

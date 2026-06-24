@@ -1,26 +1,28 @@
-from fastapi import APIRouter, Body, HTTPException, status, Depends, Path
 from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+
+from src.application.use_cases.create_project import CreateProjectCommand
+from src.application.use_cases.delete_project import DeleteProjectCommand
+from src.application.use_cases.get_project_by_id import GetProjectByIdCommand
+from src.application.use_cases.list_projects import ListProjectsCommand
 from src.application.use_cases.purge_project import PurgeProjectCommand
 from src.application.use_cases.restore_project import RestoreProjectCommand
+from src.application.use_cases.update_project import UpdateProjectCommand
 from src.domain.exceptions import (
     DomainError,
     InvalidProjectNameError,
     ProjectHasTasksError,
     ProjectNotFoundError,
 )
-from src.application.use_cases.delete_project import DeleteProjectCommand
-from src.application.use_cases.list_projects import ListProjectsCommand
-from src.application.use_cases.get_project_by_id import GetProjectByIdCommand
-from src.application.use_cases.create_project import CreateProjectCommand
-from src.application.use_cases.update_project import UpdateProjectCommand
-from uuid import UUID
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
 )
 from src.presentation.api.schemas.project import (
-    CreateProjectResponse,
     CreateProjectRequest,
+    CreateProjectResponse,
     ListProjectsParams,
     UpdateProjectRequest,
 )

@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from uuid import UUID
+
 from src.application.ports.task_repository import TaskRepositoryPort
-from src.domain.entities.task_status_change import TaskStatusChange
 from src.application.ports.task_status_history_repository import (
     TaskStatusHistoryRepositoryPort,
 )
+from src.domain.entities.task_status_change import TaskStatusChange
 
 
 @dataclass(frozen=True)

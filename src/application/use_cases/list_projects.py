@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from src.domain.entities.project import Project
+
 from src.application.ports.project_repository import ProjectRepositoryPort
+from src.domain.entities.project import Project
 
 
 @dataclass(frozen=True)

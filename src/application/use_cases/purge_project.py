@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
-from src.domain.exceptions import ProjectHasTasksError
-from src.application.ports.task_repository import TaskRepositoryPort
+
 from src.application.ports.project_repository import ProjectRepositoryPort
+from src.application.ports.task_repository import TaskRepositoryPort
+from src.domain.exceptions import ProjectHasTasksError
 
 
 @dataclass(frozen=True)

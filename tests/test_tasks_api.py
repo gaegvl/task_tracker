@@ -1,10 +1,9 @@
-from uuid import uuid4
-
 from fastapi.testclient import TestClient
 
 from src.domain.entities.task import TaskStatus
 from src.main import app
 from tests.helpers import (
+    TEST_ID_GENERATOR,
     create_project_via_api,
     create_task_via_api,
     create_tasks_via_api,
@@ -215,7 +214,7 @@ def test_update_task_not_found_returns_404() -> None:
         project_id = create_project_via_api(client)
 
         response = client.patch(
-            f"/tasks/{uuid4()}",
+            f"/tasks/{TEST_ID_GENERATOR.new_id()}",
             json={
                 "status": TaskStatus.IN_PROGRESS.value,
                 "title": "Test Task updated",
@@ -262,7 +261,7 @@ def test_get_deleted_task_returns_404() -> None:
 
 def test_delete_task_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.delete(f"/tasks/{uuid4()}")
+        response = client.delete(f"/tasks/{TEST_ID_GENERATOR.new_id()}")
 
         assert response.status_code == 404
 
@@ -274,7 +273,7 @@ def test_create_task_with_invalid_project_id_returns_404() -> None:
             json={
                 "title": "Test Task",
                 "description": "Test Description",
-                "project_id": str(uuid4()),
+                "project_id": str(TEST_ID_GENERATOR.new_id()),
             },
         )
 
@@ -328,7 +327,7 @@ def test_restore_task_returns_200() -> None:
 
 def test_restore_task_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.post(f"/tasks/{uuid4()}/restore")
+        response = client.post(f"/tasks/{TEST_ID_GENERATOR.new_id()}/restore")
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Task not found"}
@@ -396,7 +395,7 @@ def test_purge_task_returns_204() -> None:
 
 def test_purge_task_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.delete(f"/tasks/{uuid4()}/purge")
+        response = client.delete(f"/tasks/{TEST_ID_GENERATOR.new_id()}/purge")
         assert response.status_code == 404
         assert response.json() == {"detail": "Task not found"}
 

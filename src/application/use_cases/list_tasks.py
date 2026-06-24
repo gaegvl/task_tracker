@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from src.application.ports.task_repository import TaskRepositoryPort
-from src.domain.entities.task import TaskStatus
 from src.application.use_cases.get_task_by_id import GetTaskByIdResult
+from src.domain.entities.task import TaskStatus
 
 
 @dataclass

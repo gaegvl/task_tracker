@@ -1,8 +1,8 @@
-from src.application.ports.project_repository import ProjectRepositoryPort
-from src.application.ports.task_repository import TaskRepositoryPort
 from dataclasses import dataclass
 from uuid import UUID
 
+from src.application.ports.project_repository import ProjectRepositoryPort
+from src.application.ports.task_repository import TaskRepositoryPort
 from src.application.use_cases.get_project_by_id import CreateProjectResult
 
 

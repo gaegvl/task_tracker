@@ -1,23 +1,27 @@
 import pytest
-from uuid import uuid4
-from src.application.use_cases.delete_task import DeleteTaskCommand, DeleteTaskUseCase
+
+from src.application.use_cases.delete_project import DeleteProjectCommand
+from src.application.use_cases.delete_task import DeleteTaskCommand
 from src.application.use_cases.purge_task import PurgeTaskCommand, PurgeTaskUseCase
-from src.domain.exceptions import ProjectNotFoundError, TaskNotFoundError
-from src.domain.entities.task import TaskStatus
-from src.infrastructure.db.repositories.in_memory_project_repository import (
-    InMemoryProjectRepository,
-)
 from src.application.use_cases.restore_task import (
     RestoreTaskCommand,
     RestoreTaskUseCase,
+)
+from src.domain.entities.task import TaskStatus
+from src.domain.exceptions import ProjectNotFoundError, TaskNotFoundError
+from src.infrastructure.db.repositories.in_memory_project_repository import (
+    InMemoryProjectRepository,
 )
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    TEST_ID_GENERATOR,
+    add_tasks_to_repository,
     create_project_in_memory,
     create_task_in_memory,
-    add_tasks_to_repository,
+    make_delete_project_use_case,
+    make_delete_task_use_case,
 )
 
 
@@ -25,12 +29,14 @@ from tests.helpers import (
 async def test_restore_task_use_case() -> None:
     task_repository = InMemoryTaskRepository()
     project_repository = InMemoryProjectRepository()
+
     project_id = await create_project_in_memory(project_repository)
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-
-    await task_repository.delete(task_id)
+    delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
+    delete_command = DeleteTaskCommand(task_id=task_id)
+    await delete_task_use_case.execute(command=delete_command)
 
     use_case = RestoreTaskUseCase(
         task_repository=task_repository, project_repository=project_repository
@@ -54,7 +60,7 @@ async def test_restore_not_found_task() -> None:
     use_case = RestoreTaskUseCase(
         task_repository=task_repository, project_repository=project_repository
     )
-    command = RestoreTaskCommand(uuid4())
+    command = RestoreTaskCommand(TEST_ID_GENERATOR.new_id())
     with pytest.raises(TaskNotFoundError):
         await use_case.execute(command=command)
 
@@ -79,13 +85,16 @@ async def test_restore_before_deleted_task() -> None:
 async def test_restore_task_after_delete_and_task_is_in_list_tasks() -> None:
     task_repository = InMemoryTaskRepository()
     project_repository = InMemoryProjectRepository()
+
     project_id = await create_project_in_memory(project_repository)
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
     await add_tasks_to_repository(3, project_id, TaskStatus.TODO, task_repository)
 
-    await task_repository.delete(task_id)
+    delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
+    delete_command = DeleteTaskCommand(task_id=task_id)
+    await delete_task_use_case.execute(command=delete_command)
 
     result = await task_repository.list_tasks(
         project_id=project_id, status=None, limit=10, offset=0
@@ -108,12 +117,22 @@ async def test_restore_task_after_delete_and_task_is_in_list_tasks() -> None:
 async def test_restore_task_with_deleted_project() -> None:
     task_repository = InMemoryTaskRepository()
     project_repository = InMemoryProjectRepository()
+
     project_id = await create_project_in_memory(project_repository)
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    await task_repository.delete(task_id)
-    await project_repository.delete(project_id)
+    delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
+    delete_command = DeleteTaskCommand(task_id=task_id)
+    await delete_task_use_case.execute(command=delete_command)
+
+    delete_project_use_case = make_delete_project_use_case(
+        project_repository=project_repository,
+        task_repository=task_repository,
+    )
+    delete_command = DeleteProjectCommand(id=project_id)
+    await delete_project_use_case.execute(command=delete_command)
+
     use_case = RestoreTaskUseCase(
         task_repository=task_repository, project_repository=project_repository
     )
@@ -130,7 +149,7 @@ async def test_restore_task_after_purge() -> None:
     task_id = await create_task_in_memory(
         task_repository, project_repository, project_id
     )
-    delete_use_case = DeleteTaskUseCase(task_repository)
+    delete_use_case = make_delete_task_use_case(task_repository=task_repository)
     delete_command = DeleteTaskCommand(task_id=task_id)
     await delete_use_case.execute(command=delete_command)
     use_case = RestoreTaskUseCase(

@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
+
 from src.domain.entities.task import Task, TaskStatus
 
 
@@ -22,7 +24,7 @@ class TaskRepositoryPort(Protocol):
     ) -> list[Task]:
         pass
 
-    async def delete(self, task_id: UUID) -> None:
+    async def delete(self, task_id: UUID, deleted_at: datetime) -> None:
         pass
 
     async def exists_by_project_id(self, project_id: UUID) -> bool:

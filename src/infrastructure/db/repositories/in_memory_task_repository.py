@@ -1,9 +1,10 @@
-from uuid import UUID
-from src.domain.exceptions import TaskNotFoundError
-from src.domain.entities.task import Task, TaskStatus
-from src.application.ports.task_repository import TaskRepositoryPort
-from operator import attrgetter
 from datetime import datetime
+from operator import attrgetter
+from uuid import UUID
+
+from src.application.ports.task_repository import TaskRepositoryPort
+from src.domain.entities.task import Task, TaskStatus
+from src.domain.exceptions import TaskNotFoundError
 
 
 class InMemoryTaskRepository(TaskRepositoryPort):
@@ -48,9 +49,9 @@ class InMemoryTaskRepository(TaskRepositoryPort):
         )
         return sorted_task_by_created_at[offset : offset + limit]
 
-    async def delete(self, task_id: UUID) -> None:
+    async def delete(self, task_id: UUID, deleted_at: datetime) -> None:
         task = await self.get_by_id(task_id)
-        self.in_memory_task_repository[task_id] = task.mark_deleted(datetime.now())
+        self.in_memory_task_repository[task_id] = task.mark_deleted(deleted_at)
 
     async def exists_by_project_id(self, project_id: UUID) -> bool:
         return any(

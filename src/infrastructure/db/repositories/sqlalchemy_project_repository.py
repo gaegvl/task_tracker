@@ -1,11 +1,13 @@
 from datetime import datetime
+from uuid import UUID
+
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.domain.exceptions import ProjectNotFoundError
+
 from src.application.ports.project_repository import ProjectRepositoryPort
 from src.domain.entities.project import Project
+from src.domain.exceptions import ProjectNotFoundError
 from src.infrastructure.db.models.project import Project as ProjectModel
-from sqlalchemy import delete, select, update
-from uuid import UUID
 
 
 class SqlAlchemyProjectRepository(ProjectRepositoryPort):
@@ -13,14 +15,14 @@ class SqlAlchemyProjectRepository(ProjectRepositoryPort):
         self.session = session
 
     async def add(self, project: Project) -> None:
-        project = ProjectModel(
+        project_model: ProjectModel = ProjectModel(
             id=project.id,
             name=project.name,
             description=project.description,
             created_at=project.created_at,
             deleted_at=None,
         )
-        self.session.add(project)
+        self.session.add(project_model)
         await self.session.commit()
 
     async def get_by_id(self, project_id: UUID) -> Project:
@@ -78,9 +80,9 @@ class SqlAlchemyProjectRepository(ProjectRepositoryPort):
             created_at=project.created_at,
         )
 
-    async def delete(self, project_id: UUID) -> None:
+    async def delete(self, project_id: UUID, deleted_at: datetime) -> None:
         project = await self.get_by_id(project_id)
-        marked = project.mark_deleted(datetime.now())
+        marked = project.mark_deleted(deleted_at)
         await self.session.execute(
             update(ProjectModel)
             .where(ProjectModel.id == project_id, ProjectModel.deleted_at.is_(None))

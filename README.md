@@ -264,6 +264,22 @@ uv run pytest
 
 Unit-тесты use case используют `InMemoryTaskRepository` без Postgres. API-тесты — `TestClient` + `TEST_DATABASE_URL`.
 
+## Линтеры
+
+uv sync --group dev
+
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+
+## Pre-commit
+
+uv sync --group dev
+uv run pre-commit install
+
+# проверить все файлы вручную
+uv run pre-commit run --all-files
+
 ## Структура каталогов
 
 ```

@@ -1,8 +1,9 @@
-from uuid import UUID
-from src.domain.exceptions import ProjectNotFoundError
-from src.domain.entities.project import Project
-from src.application.ports.project_repository import ProjectRepositoryPort
 from datetime import datetime
+from uuid import UUID
+
+from src.application.ports.project_repository import ProjectRepositoryPort
+from src.domain.entities.project import Project
+from src.domain.exceptions import ProjectNotFoundError
 
 
 class InMemoryProjectRepository(ProjectRepositoryPort):
@@ -29,11 +30,9 @@ class InMemoryProjectRepository(ProjectRepositoryPort):
             if project.deleted_at is None
         )[offset : offset + limit]
 
-    async def delete(self, project_id: UUID) -> None:
+    async def delete(self, project_id: UUID, deleted_at: datetime) -> None:
         project = await self.get_by_id(project_id)
-        self.in_memory_project_repository[project_id] = project.mark_deleted(
-            datetime.now()
-        )
+        self.in_memory_project_repository[project_id] = project.mark_deleted(deleted_at)
 
     async def find_soft_deleted(self, project_id: UUID) -> Project:
         project = self.in_memory_project_repository.get(project_id)
