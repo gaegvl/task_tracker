@@ -6,6 +6,7 @@ from src.main import app
 from tests.helpers import (
     create_project_via_api,
     create_task_via_api,
+    create_tasks_via_api,
 )
 
 
@@ -257,3 +258,48 @@ def test_restore_project_and_restore_task_returns_200() -> None:
             "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
         )
         assert len(response.json()) == 2
+
+
+def test_purge_project_returns_204() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_ids = create_tasks_via_api(client, 5, project_id)
+        for task_id in task_ids:
+            response = client.delete(f"/tasks/{task_id}")
+            assert response.status_code == 204
+
+        response = client.delete(f"/projects/{project_id}")
+        assert response.status_code == 204
+
+        response = client.delete(f"/projects/{project_id}/purge")
+        assert response.status_code == 204
+
+        response = client.get(f"/projects/{project_id}")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}
+
+        for task_id in task_ids:
+            response = client.get(f"/tasks/{task_id}")
+            assert response.status_code == 404
+            assert response.json() == {"detail": "Task not found"}
+
+
+def test_purge_project_with_active_tasks_returns_409() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        create_task_via_api(client, project_id)
+        response = client.delete(f"/projects/{project_id}")
+        assert response.status_code == 409
+        assert response.json() == {"detail": "Project has tasks"}
+
+        response = client.delete(f"/projects/{project_id}/purge")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}
+
+
+def test_purge_active_project_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        response = client.delete(f"/projects/{project_id}/purge")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}

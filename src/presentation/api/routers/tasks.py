@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Body, Path, status, Depends, HTTPException
+from src.application.use_cases.purge_task import PurgeTaskCommand
 from src.application.use_cases.restore_task import RestoreTaskCommand
 from src.application.use_cases.delete_task import DeleteTaskCommand
 from src.application.use_cases.update_task import UpdateTaskCommand
@@ -188,6 +189,10 @@ async def restore_task(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
         )
+    except ProjectNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
     except DomainError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -200,3 +205,21 @@ async def restore_task(
         status=TaskStatus(result.status),
         created_at=result.created_at,
     )
+
+
+@router.delete("/{task_id}/purge", status_code=status.HTTP_204_NO_CONTENT)
+async def purge_task(
+    task_id: Annotated[UUID, Path()],
+    deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+) -> None:
+    try:
+        command = PurgeTaskCommand(task_id=task_id)
+        await deps.purge_task.execute(command=command)
+    except TaskNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
+    except DomainError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )

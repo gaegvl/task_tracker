@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException, status, Depends, Path
 from typing import Annotated
+from src.application.use_cases.purge_project import PurgeProjectCommand
 from src.application.use_cases.restore_project import RestoreProjectCommand
 from src.domain.exceptions import (
     DomainError,
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 @router.post(
     "/", response_model=CreateProjectResponse, status_code=status.HTTP_201_CREATED
 )
-async def crete_project(
+async def create_project(
     project: Annotated[CreateProjectRequest, Body()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
 ) -> CreateProjectResponse:
@@ -193,3 +194,25 @@ async def restore_project(
         description=result.description,
         created_at=result.created_at,
     )
+
+
+@router.delete("/{project_id}/purge", status_code=status.HTTP_204_NO_CONTENT)
+async def purge_project(
+    project_id: Annotated[UUID, Path()],
+    deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+) -> None:
+    try:
+        command = PurgeProjectCommand(project_id=project_id)
+        await deps.purge_project.execute(command=command)
+    except ProjectNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+    except ProjectHasTasksError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Project has tasks"
+        )
+    except DomainError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )

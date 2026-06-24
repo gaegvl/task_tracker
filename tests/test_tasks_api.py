@@ -368,3 +368,67 @@ def test_restore_task_after_delete_and_task_is_in_list_tasks() -> None:
         )
         assert len(list_task.json()) == 4
         assert task_id in [task["id"] for task in list_task.json()]
+
+
+def test_restore_task_with_deleted_project_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/projects/{project_id}")
+        response = client.post(f"/tasks/{task_id}/restore")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Project not found"}
+
+
+def test_purge_task_returns_204() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        client.delete(f"/tasks/{task_id}")
+        response = client.delete(f"/tasks/{task_id}/purge")
+        assert response.status_code == 204
+
+        response = client.get(f"/tasks/{task_id}")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}
+
+
+def test_purge_task_not_found_returns_404() -> None:
+    with TestClient(app) as client:
+        response = client.delete(f"/tasks/{uuid4()}/purge")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}
+
+
+def test_purge_active_task_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        response = client.delete(f"/tasks/{task_id}/purge")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}
+
+
+def test_purge_task_and_restore_task_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        client.delete(f"/tasks/{task_id}")
+        response = client.delete(f"/tasks/{task_id}/purge")
+        assert response.status_code == 204
+        response = client.post(f"/tasks/{task_id}/restore")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}
+
+
+def test_purge_task_and_get_status_history_returns_404() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        client.delete(f"/tasks/{task_id}")
+        response = client.delete(f"/tasks/{task_id}/purge")
+        assert response.status_code == 204
+        response = client.get(f"/tasks/{task_id}/status-history")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Task not found"}

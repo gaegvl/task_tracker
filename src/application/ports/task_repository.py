@@ -28,8 +28,17 @@ class TaskRepositoryPort(Protocol):
     async def exists_by_project_id(self, project_id: UUID) -> bool:
         pass
 
-    async def restore(self, task_id: UUID) -> Task:
+    async def restore(self, task: Task) -> Task:
         pass
 
     async def restore_by_project_id(self, project_id: UUID) -> None:
+        pass
+
+    async def purge(self, task: Task) -> None:
+        pass
+
+    async def purge_by_project_id(self, project_id: UUID) -> None:
+        pass
+
+    async def find_soft_deleted(self, task_id: UUID) -> Task:
         pass

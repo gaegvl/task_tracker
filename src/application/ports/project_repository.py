@@ -21,3 +21,9 @@ class ProjectRepositoryPort(Protocol):
 
     async def restore(self, project_id: UUID) -> Project:
         pass
+
+    async def purge(self, project: Project) -> None:
+        pass
+
+    async def find_soft_deleted(self, project_id: UUID) -> Project:
+        pass

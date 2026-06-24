@@ -4,7 +4,7 @@ from src.domain.exceptions import TaskNotFoundError
 from src.application.ports.task_repository import TaskRepositoryPort
 from src.domain.entities.task import Task, TaskStatus
 from src.infrastructure.db.models.task import Task as TaskModel
-from sqlalchemy import update, exists, select
+from sqlalchemy import delete, update, exists, select
 from datetime import datetime
 
 
@@ -103,7 +103,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         result = await self.session.scalar(select(TaskModel).where(exists_query))
         return bool(result)
 
-    async def restore(self, task_id: UUID) -> Task:
+    async def find_soft_deleted(self, task_id: UUID) -> Task:
         task = await self.session.scalar(
             select(TaskModel).where(
                 TaskModel.id == task_id, TaskModel.deleted_at.isnot(None)
@@ -111,8 +111,18 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
         )
         if not task:
             raise TaskNotFoundError(task_id)
+        return Task(
+            id=task.id,
+            title=task.title,
+            description=task.description,
+            project_id=task.project_id,
+            status=TaskStatus(task.status),
+            created_at=task.created_at,
+        )
+
+    async def restore(self, task: Task) -> Task:
         await self.session.execute(
-            update(TaskModel).where(TaskModel.id == task_id).values(deleted_at=None)
+            update(TaskModel).where(TaskModel.id == task.id).values(deleted_at=None)
         )
         await self.session.commit()
         return Task(
@@ -129,5 +139,21 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             update(TaskModel)
             .where(TaskModel.project_id == project_id, TaskModel.deleted_at.isnot(None))
             .values(deleted_at=None)
+        )
+        await self.session.commit()
+
+    async def purge(self, task: Task) -> None:
+        await self.session.execute(
+            delete(TaskModel).where(
+                TaskModel.id == task.id, TaskModel.deleted_at.isnot(None)
+            )
+        )
+        await self.session.commit()
+
+    async def purge_by_project_id(self, project_id: UUID) -> None:
+        await self.session.execute(
+            delete(TaskModel).where(
+                TaskModel.project_id == project_id, TaskModel.deleted_at.isnot(None)
+            )
         )
         await self.session.commit()

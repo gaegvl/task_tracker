@@ -4,7 +4,7 @@ from src.domain.exceptions import ProjectNotFoundError
 from src.application.ports.project_repository import ProjectRepositoryPort
 from src.domain.entities.project import Project
 from src.infrastructure.db.models.project import Project as ProjectModel
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from uuid import UUID
 
 
@@ -63,6 +63,21 @@ class SqlAlchemyProjectRepository(ProjectRepositoryPort):
             for project in projects
         ]
 
+    async def find_soft_deleted(self, project_id: UUID) -> Project:
+        project = await self.session.scalar(
+            select(ProjectModel).where(
+                ProjectModel.id == project_id, ProjectModel.deleted_at.isnot(None)
+            )
+        )
+        if not project:
+            raise ProjectNotFoundError(project_id)
+        return Project(
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            created_at=project.created_at,
+        )
+
     async def delete(self, project_id: UUID) -> None:
         project = await self.get_by_id(project_id)
         marked = project.mark_deleted(datetime.now())
@@ -93,3 +108,11 @@ class SqlAlchemyProjectRepository(ProjectRepositoryPort):
             description=project.description,
             created_at=project.created_at,
         )
+
+    async def purge(self, project: Project) -> None:
+        await self.session.execute(
+            delete(ProjectModel).where(
+                ProjectModel.id == project.id, ProjectModel.deleted_at.isnot(None)
+            )
+        )
+        await self.session.commit()

@@ -15,9 +15,7 @@ class InMemoryTaskRepository(TaskRepositoryPort):
 
     async def get_by_id(self, task_id: UUID) -> Task:
         task = self.in_memory_task_repository.get(task_id)
-        if not task:
-            raise TaskNotFoundError(task_id)
-        if task.deleted_at is not None:
+        if not task or task.deleted_at is not None:
             raise TaskNotFoundError(task_id)
         return task
 
@@ -60,12 +58,17 @@ class InMemoryTaskRepository(TaskRepositoryPort):
             for task in self.in_memory_task_repository.values()
         )
 
-    async def restore(self, task_id: UUID) -> Task:
+    async def find_soft_deleted(self, task_id: UUID) -> Task:
         task = self.in_memory_task_repository.get(task_id)
         if not task or task.deleted_at is None:
             raise TaskNotFoundError(task_id)
+        return task
+
+    async def restore(self, task: Task) -> Task:
+        if task.deleted_at is None:
+            raise TaskNotFoundError(task.id)
         restored_task = task.restore()
-        self.in_memory_task_repository[task_id] = restored_task
+        self.in_memory_task_repository[task.id] = restored_task
         return restored_task
 
     async def restore_by_project_id(self, project_id: UUID) -> None:
@@ -73,3 +76,15 @@ class InMemoryTaskRepository(TaskRepositoryPort):
             if task.project_id == project_id and task.deleted_at is not None:
                 restored_task = task.restore()
                 self.in_memory_task_repository[id] = restored_task
+
+    async def purge(self, task: Task) -> None:
+        self.in_memory_task_repository.pop(task.id)
+
+    async def purge_by_project_id(self, project_id: UUID) -> None:
+        filtered_tasks = [
+            task
+            for task in self.in_memory_task_repository.values()
+            if task.project_id == project_id and task.deleted_at is not None
+        ]
+        for task in filtered_tasks:
+            self.in_memory_task_repository.pop(task.id)
