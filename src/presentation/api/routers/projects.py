@@ -10,12 +10,14 @@ from src.application.use_cases.list_projects import ListProjectsCommand
 from src.application.use_cases.purge_project import PurgeProjectCommand
 from src.application.use_cases.restore_project import RestoreProjectCommand
 from src.application.use_cases.update_project import UpdateProjectCommand
+from src.domain.entities.user import CurrentUser
 from src.domain.exceptions import (
     DomainError,
     InvalidProjectNameError,
     ProjectHasTasksError,
     ProjectNotFoundError,
 )
+from src.presentation.api.auth import require_admin
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
@@ -178,6 +180,7 @@ async def delete_project(
 async def restore_project(
     project_id: Annotated[UUID, Path()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    _admin: Annotated[CurrentUser, Depends(require_admin)],
 ) -> CreateProjectResponse:
     command = RestoreProjectCommand(project_id=project_id)
     try:
@@ -202,6 +205,7 @@ async def restore_project(
 async def purge_project(
     project_id: Annotated[UUID, Path()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    _admin: Annotated[CurrentUser, Depends(require_admin)],
 ) -> None:
     try:
         command = PurgeProjectCommand(project_id=project_id)

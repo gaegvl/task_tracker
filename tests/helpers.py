@@ -32,6 +32,9 @@ from tests.fakes import FixedClock
 TEST_CLOCK = FixedClock(datetime(2026, 1, 1, 12, 0, 0))
 TEST_ID_GENERATOR = SystemIdGenerator()
 
+ADMIN_API_KEY = "test-admin-key"
+USER_API_KEY = "test-user-key"
+
 
 def make_create_project_use_case(
     project_repository: ProjectRepositoryPort,
@@ -187,3 +190,11 @@ async def add_projects_to_repository(
         )
 
         await repository.add(project=project)
+
+
+def admin_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {ADMIN_API_KEY}"}
+
+
+def user_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {USER_API_KEY}"}

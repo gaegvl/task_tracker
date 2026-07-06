@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from src.main import app
 from tests.helpers import (
     TEST_ID_GENERATOR,
+    admin_headers,
     create_project_via_api,
     create_task_via_api,
     create_tasks_via_api,
@@ -188,7 +189,9 @@ def test_restore_project_returns_200() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         client.delete(f"/projects/{project_id}")
-        response = client.post(f"/projects/{project_id}/restore")
+        response = client.post(
+            f"/projects/{project_id}/restore", headers=admin_headers()
+        )
         assert response.status_code == 200
         project = client.get(f"/projects/{project_id}")
         assert project.status_code == 200
@@ -196,7 +199,9 @@ def test_restore_project_returns_200() -> None:
 
 def test_restore_project_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.post(f"/projects/{TEST_ID_GENERATOR.new_id()}/restore")
+        response = client.post(
+            f"/projects/{TEST_ID_GENERATOR.new_id()}/restore", headers=admin_headers()
+        )
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
 
@@ -211,7 +216,9 @@ def test_restore_project_after_delete_and_project_is_in_list_projects() -> None:
         client.delete(f"/projects/{project_id_1}")
         response = client.get("/projects")
         assert project_id_1 not in [project["id"] for project in response.json()]
-        response = client.post(f"/projects/{project_id_1}/restore")
+        response = client.post(
+            f"/projects/{project_id_1}/restore", headers=admin_headers()
+        )
         assert response.status_code == 200
         response = client.get("/projects")
         assert len(response.json()) == 2
@@ -226,7 +233,9 @@ def test_restore_project_and_create_task_returns_201() -> None:
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
 
-        response = client.post(f"/projects/{project_id}/restore")
+        response = client.post(
+            f"/projects/{project_id}/restore", headers=admin_headers()
+        )
         assert response.status_code == 200
 
         response = client.post(
@@ -250,7 +259,9 @@ def test_restore_project_and_restore_task_returns_200() -> None:
         response = client.delete(f"/projects/{project_id}")
         assert response.status_code == 204
 
-        response = client.post(f"/projects/{project_id}/restore")
+        response = client.post(
+            f"/projects/{project_id}/restore", headers=admin_headers()
+        )
         assert response.status_code == 200
 
         response = client.get(
@@ -270,7 +281,9 @@ def test_purge_project_returns_204() -> None:
         response = client.delete(f"/projects/{project_id}")
         assert response.status_code == 204
 
-        response = client.delete(f"/projects/{project_id}/purge")
+        response = client.delete(
+            f"/projects/{project_id}/purge", headers=admin_headers()
+        )
         assert response.status_code == 204
 
         response = client.get(f"/projects/{project_id}")
@@ -291,7 +304,9 @@ def test_purge_project_with_active_tasks_returns_409() -> None:
         assert response.status_code == 409
         assert response.json() == {"detail": "Project has tasks"}
 
-        response = client.delete(f"/projects/{project_id}/purge")
+        response = client.delete(
+            f"/projects/{project_id}/purge", headers=admin_headers()
+        )
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}
 
@@ -299,6 +314,8 @@ def test_purge_project_with_active_tasks_returns_409() -> None:
 def test_purge_active_project_returns_404() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
-        response = client.delete(f"/projects/{project_id}/purge")
+        response = client.delete(
+            f"/projects/{project_id}/purge", headers=admin_headers()
+        )
         assert response.status_code == 404
         assert response.json() == {"detail": "Project not found"}

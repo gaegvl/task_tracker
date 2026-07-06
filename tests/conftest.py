@@ -9,6 +9,8 @@ from src.infrastructure.db.engine import create_engine
 from src.infrastructure.db.session import create_session_factory
 
 # Подключаем приложение к test-базе
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key")
+os.environ.setdefault("USER_API_KEY", "test-user-key")
 _settings = Settings()
 os.environ["DATABASE_URL"] = _settings.test_database_url
 get_settings.cache_clear()
