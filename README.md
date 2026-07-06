@@ -32,6 +32,7 @@ TEST_DATABASE_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/task_tracker
 
 - `DATABASE_URL` — приложение (`uvicorn`)
 - `TEST_DATABASE_URL` — pytest (подменяется в `tests/conftest.py`)
+- `ADMIN_API_KEY` / `USER_API_KEY` — API-ключи для admin endpoints (restore/purge)
 
 Файл `src/.env` в git не коммитится.
 
@@ -126,13 +127,18 @@ Body: `status` (обязательный), `title`, `description`, `project_id` 
 Path: `task_id` (обязательный). Ответ `204` или `404`. Ошибки валидации → `422`.
 
 ### Удаление задачи по id (необратимое) (`DELETE /tasks/{task_id}/purge`)
+
+Требует заголовок `Authorization: Bearer <ADMIN_API_KEY>`.
+
 Удаляет задачу необратимо. Удаление возможно только для soft-deleted задач.
-Path: `task_id` (обязательный). Ответ `204` или `404`. Ошибки валидации → `422`.
+Path: `task_id` (обязательный). Ответ `204` или `404`. Без ключа → `401`, ключ user → `403`.
 
 ### Восстановление задачи по id (`POST /tasks/{task_id}/restore`)
-Восстанавливает soft-deleted задачу. Активный проект не затрагивается. Если проект удален(soft-deleted), то восстановление невозможно.
-Path: `task_id` (обязательный).
-Ответ `200` или `404`. Ошибки валидации → `422`.
+
+Требует заголовок `Authorization: Bearer <ADMIN_API_KEY>`.
+
+Восстанавливает soft-deleted задачу. Активный проект не затрагивается. Если проект удален (soft-deleted), восстановление невозможно.
+Path: `task_id` (обязательный). Ответ `200` или `404`. Без ключа → `401`, ключ user → `403`.
 
 ### Список смен статуса задачи (`GET /tasks/{task_id}/status-history`)
 Изменения статуса задачи записываются в историю, только при реальной смене статуса через PATCH.
@@ -168,14 +174,16 @@ curl -s -X DELETE "http://127.0.0.1:8000/tasks/<TASK_ID>"
 # несуществующая задача
 curl -s -X GET "http://127.0.0.1:8000/tasks/<TASK_ID>"
 
-# восстановить задачу
-curl -s -X POST "http://127.0.0.1:8000/tasks/<TASK_ID>/restore"
+# восстановить задачу (admin)
+curl -s -X POST "http://127.0.0.1:8000/tasks/<TASK_ID>/restore" \
+  -H "Authorization: Bearer <ADMIN_API_KEY>"
 
 # список смен статуса задачи
 curl -s "http://127.0.0.1:8000/tasks/<TASK_ID>/status-history?limit=10&offset=0"
 
-# удалить задачу необратимо
-curl -s -X DELETE "http://127.0.0.1:8000/tasks/<TASK_ID>/purge"
+# удалить задачу необратимо (admin)
+curl -s -X DELETE "http://127.0.0.1:8000/tasks/<TASK_ID>/purge" \
+  -H "Authorization: Bearer <ADMIN_API_KEY>"
 
 ```
 
@@ -217,14 +225,18 @@ Body: `name`, `description` (optional). Ответ `200` или `404`. Нева�
 Path: `project_id` (обязательный). Ответ `204` или `404`. Ошибки валидации → `422`. Если есть активные задачи -> `409` + ожидаемый `detail` ("Project has tasks").
 
 ### Восстановление проекта по id (`POST /projects/{project_id}/restore`)
-Восстанавливает soft-deleted проект и все его soft-deleted задачи (каскадно). Активные задачи не затрагиваются. Восстановление возможно только для soft-deleted проектов.
 
-Path: `project_id` (обязательный).
-Ответ `200` или `404`. Ошибки валидации → `422`.
+Требует заголовок `Authorization: Bearer <ADMIN_API_KEY>`.
+
+Восстанавливает soft-deleted проект и все его soft-deleted задачи (каскадно). Активные задачи не затрагиваются.
+Path: `project_id` (обязательный). Ответ `200` или `404`. Без ключа → `401`, ключ user → `403`.
 
 ### Удаление проекта по id (необратимое) (`DELETE /projects/{project_id}/purge`)
-Удаляет проект необратимо. Удаление возможно только для soft-deleted проектов. Каскадное удаление (soft-deleted) задач. 
-Path: `project_id` (обязательный). Ответ `204` или `404`. Ошибки валидации → `422`. Если есть активные задачи (защита от неконсистентности данных) -> `409` + ожидаемый `detail` ("Project has tasks").
+
+Требует заголовок `Authorization: Bearer <ADMIN_API_KEY>`.
+
+Удаляет проект необратимо. Только для soft-deleted проектов. Каскадное удаление soft-deleted задач.
+Path: `project_id` (обязательный). Ответ `204` или `404` / `409`. Без ключа → `401`, ключ user → `403`.
 
 ### Примеры (curl)
 
@@ -248,12 +260,36 @@ curl -s -X PATCH "http://127.0.0.1:8000/projects/<PROJECT_ID>" \
 # удалить
 curl -s -X DELETE "http://127.0.0.1:8000/projects/<PROJECT_ID>"
 
-# восстановить проект
-curl -s -X POST "http://127.0.0.1:8000/projects/<PROJECT_ID>/restore"
+# восстановить проект (admin)
+curl -s -X POST "http://127.0.0.1:8000/projects/<PROJECT_ID>/restore" \
+  -H "Authorization: Bearer <ADMIN_API_KEY>"
 
-# удалить проект необратимо
-curl -s -X DELETE "http://127.0.0.1:8000/projects/<PROJECT_ID>/purge"
+# удалить проект необратимо (admin)
+curl -s -X DELETE "http://127.0.0.1:8000/projects/<PROJECT_ID>/purge" \
+  -H "Authorization: Bearer <ADMIN_API_KEY>"
 ```
+
+
+## Авторизация (admin)
+
+Ключи задаются в `src/.env`:
+
+```env
+ADMIN_API_KEY=...
+USER_API_KEY=...
+```
+
+| Операция | Auth |
+|----------|------|
+| CRUD, soft `DELETE`, `status-history` | не требуется |
+| `POST .../restore`, `DELETE .../purge` | `Authorization: Bearer <ADMIN_API_KEY>` |
+
+Коды ответа:
+
+- `401` — нет заголовка или неверный ключ
+- `403` — ключ `USER_API_KEY`, нужен admin
+
+Обычный CRUD без заголовка работает как раньше.
 
 
 ## Тесты

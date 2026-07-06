@@ -42,3 +42,11 @@ class InvalidTaskStatusTransitionError(DomainError):
         super().__init__(
             f"Invalid task status transition from {old_status} to {new_status}"
         )
+
+
+class AuthenticationError(DomainError):
+    pass
+
+
+class AuthorizationError(DomainError):
+    pass

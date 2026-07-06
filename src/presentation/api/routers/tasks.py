@@ -14,6 +14,7 @@ from src.application.use_cases.purge_task import PurgeTaskCommand
 from src.application.use_cases.restore_task import RestoreTaskCommand
 from src.application.use_cases.update_task import UpdateTaskCommand
 from src.domain.entities.task import TaskStatus
+from src.domain.entities.user import CurrentUser
 from src.domain.exceptions import (
     DomainError,
     InvalidTaskStatusTransitionError,
@@ -21,6 +22,7 @@ from src.domain.exceptions import (
     ProjectNotFoundError,
     TaskNotFoundError,
 )
+from src.presentation.api.auth import require_admin
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
@@ -183,6 +185,7 @@ async def delete_task(
 async def restore_task(
     task_id: Annotated[UUID, Path()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    _admin: Annotated[CurrentUser, Depends(require_admin)],
 ) -> TaskResponse:
     command = RestoreTaskCommand(task_id=task_id)
     try:
@@ -213,6 +216,7 @@ async def restore_task(
 async def purge_task(
     task_id: Annotated[UUID, Path()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    _admin: Annotated[CurrentUser, Depends(require_admin)],
 ) -> None:
     try:
         command = PurgeTaskCommand(task_id=task_id)
