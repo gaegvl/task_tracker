@@ -110,7 +110,7 @@ Query: `project_id` (обязательный), `status` (optional), `limit` (1�
 Ответ `200` или `404` (`{"detail": "Task not found"}`).
 
 ### Обновление задачи по id (`PATCH /tasks/{task_id}`)
-
+Дополнительное поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе(если есть).
 Body: `status` (обязательный), `title`, `description`, `project_id` (optional).
 Допустимые переходы статуса: 
 - `todo` -> `in_progress` -> `done`.
@@ -142,6 +142,7 @@ Path: `task_id` (обязательный). Ответ `200` или `404`. Бе�
 
 ### Список смен статуса задачи (`GET /tasks/{task_id}/status-history`)
 Изменения статуса задачи записываются в историю, только при реальной смене статуса через PATCH.
+Поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе.
 
 Query: `limit` (1–100, default 10), `offset` (≥ 0, default 0).
 
@@ -272,6 +273,7 @@ curl -s -X DELETE "http://127.0.0.1:8000/projects/<PROJECT_ID>/purge" \
 
 ## Авторизация (admin)
 
+Дополнительное поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе(если есть).
 Ключи задаются в `src/.env`:
 
 ```env

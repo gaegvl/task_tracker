@@ -22,7 +22,7 @@ from src.domain.exceptions import (
     ProjectNotFoundError,
     TaskNotFoundError,
 )
-from src.presentation.api.auth import require_admin
+from src.presentation.api.auth import get_optional_current_user, require_admin
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
@@ -127,6 +127,7 @@ async def update_task(
     task_id: Annotated[UUID, Path()],
     command: Annotated[UpdateTaskRequest, Body()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    current_user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
 ) -> TaskResponse:
     try:
         updated_task = await deps.update_task.execute(
@@ -136,6 +137,7 @@ async def update_task(
                 title=command.title,
                 description=command.description,
                 project_id=command.project_id,
+                changed_by=current_user.id if current_user else None,
             )
         )
         return TaskResponse(

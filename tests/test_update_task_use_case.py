@@ -49,7 +49,11 @@ async def test_update_task_status_history_uses_clock_for_changed_at() -> None:
         clock=clock,
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
     history_use_case = ListTaskStatusHistoryUseCase(
         task_status_history_repository=task_status_history_repository,
@@ -77,7 +81,11 @@ async def test_update_task_use_case_todo_to_in_progress() -> None:
         task_status_history_repository=task_status_history_repository,
     )
     updated_task = await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     assert updated_task.status == TaskStatus.IN_PROGRESS
@@ -104,11 +112,19 @@ async def test_update_task_use_case_in_progress_to_done() -> None:
         task_status_history_repository=task_status_history_repository,
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     updated_task = await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.DONE,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     assert updated_task.status == TaskStatus.DONE
@@ -128,7 +144,9 @@ async def test_update_task_use_case_not_found() -> None:
     with pytest.raises(TaskNotFoundError):
         await update_use_case.execute(
             command=UpdateTaskCommand(
-                task_id=TEST_ID_GENERATOR.new_id(), status=TaskStatus.IN_PROGRESS
+                task_id=TEST_ID_GENERATOR.new_id(),
+                status=TaskStatus.IN_PROGRESS,
+                changed_by=TEST_ID_GENERATOR.new_id(),
             )
         )
 
@@ -150,7 +168,11 @@ async def test_update_task_use_case_invalid_transition_todo_to_done() -> None:
 
     with pytest.raises(InvalidTaskStatusTransitionError):
         await update_use_case.execute(
-            command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+            command=UpdateTaskCommand(
+                task_id=task_id,
+                status=TaskStatus.DONE,
+                changed_by=TEST_ID_GENERATOR.new_id(),
+            )
         )
 
 
@@ -169,11 +191,19 @@ async def test_update_task_use_case_valid_transition_in_progress_to_todo() -> No
         task_status_history_repository=task_status_history_repository,
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     updated_task = await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.TODO)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.TODO,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     assert updated_task.status == TaskStatus.TODO
@@ -194,15 +224,27 @@ async def test_update_task_use_case_invalid_transition_done_to_in_progress() -> 
         task_status_history_repository=task_status_history_repository,
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.DONE,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     with pytest.raises(InvalidTaskStatusTransitionError):
         await update_use_case.execute(
-            command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+            command=UpdateTaskCommand(
+                task_id=task_id,
+                status=TaskStatus.IN_PROGRESS,
+                changed_by=TEST_ID_GENERATOR.new_id(),
+            )
         )
 
 
@@ -221,15 +263,27 @@ async def test_update_task_use_case_invalid_transition_done_to_todo() -> None:
         task_status_history_repository=task_status_history_repository,
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.DONE,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     with pytest.raises(InvalidTaskStatusTransitionError):
         await update_use_case.execute(
-            command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.TODO)
+            command=UpdateTaskCommand(
+                task_id=task_id,
+                status=TaskStatus.TODO,
+                changed_by=TEST_ID_GENERATOR.new_id(),
+            )
         )
 
 
@@ -248,14 +302,26 @@ async def test_update_task_use_case_same_status_is_allowed() -> None:
         task_status_history_repository=task_status_history_repository,
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
     await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.DONE,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     updated_task = await update_use_case.execute(
-        command=UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+        command=UpdateTaskCommand(
+            task_id=task_id,
+            status=TaskStatus.DONE,
+            changed_by=TEST_ID_GENERATOR.new_id(),
+        )
     )
 
     assert updated_task.status == TaskStatus.DONE

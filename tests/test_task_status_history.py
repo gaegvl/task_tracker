@@ -17,6 +17,7 @@ from src.infrastructure.db.repositories.in_memory_project_repository import (
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
+from src.infrastructure.db.seed_users import ADMIN_USER_ID
 from tests.helpers import (
     TEST_ID_GENERATOR,
     create_project_in_memory,
@@ -243,3 +244,55 @@ async def test_task_status_history_not_found() -> None:
     )
     with pytest.raises(TaskNotFoundError):
         await history_use_case.execute(command=history_command)
+
+
+@pytest.mark.asyncio
+async def test_task_status_history_changed_by() -> None:
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    task_repository = InMemoryTaskRepository()
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    history_use_case = ListTaskStatusHistoryUseCase(
+        task_status_history_repository=task_status_history_repository,
+        task_repository=task_repository,
+    )
+    history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
+    update_command = UpdateTaskCommand(
+        task_id=task_id, status=TaskStatus.IN_PROGRESS, changed_by=ADMIN_USER_ID
+    )
+    update_use_case = make_update_task_use_case(
+        task_repository=task_repository,
+        task_status_history_repository=task_status_history_repository,
+        project_repository=project_repository,
+    )
+    await update_use_case.execute(command=update_command)
+    result = await history_use_case.execute(command=history_command)
+    assert result[0].changed_by == ADMIN_USER_ID
+
+
+@pytest.mark.asyncio
+async def test_task_status_history_changed_by_none() -> None:
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    task_repository = InMemoryTaskRepository()
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    history_use_case = ListTaskStatusHistoryUseCase(
+        task_status_history_repository=task_status_history_repository,
+        task_repository=task_repository,
+    )
+    history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
+    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    update_use_case = make_update_task_use_case(
+        task_repository=task_repository,
+        task_status_history_repository=task_status_history_repository,
+        project_repository=project_repository,
+    )
+    await update_use_case.execute(command=update_command)
+    result = await history_use_case.execute(command=history_command)
+    assert result[0].changed_by is None
