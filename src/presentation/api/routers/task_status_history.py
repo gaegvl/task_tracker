@@ -45,6 +45,7 @@ async def list_task_status_history(
             from_status=change.from_status,
             to_state=change.to_state,
             changed_at=change.changed_at,
+            changed_by=change.changed_by,
         )
         for change in changes
     ]

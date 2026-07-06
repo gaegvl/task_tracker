@@ -20,6 +20,7 @@ class UpdateTaskCommand:
     title: str | None = None
     description: str | None = None
     project_id: UUID | None = None
+    changed_by: UUID | None = None
 
 
 class UpdateTaskUseCase:
@@ -57,6 +58,7 @@ class UpdateTaskUseCase:
                 from_status=old_status,
                 to_state=new_status,
                 changed_at=self.clock.now(),
+                changed_by=command.changed_by,
             )
             await self.task_status_history_repository.append(change)
         await self.task_repository.update(updated_task)

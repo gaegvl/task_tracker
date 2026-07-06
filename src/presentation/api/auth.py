@@ -41,3 +41,15 @@ def require_admin(
             status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
         )
     return user
+
+
+def get_optional_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
+    auth: Annotated[AuthPort, Depends(get_auth_port)],
+) -> CurrentUser | None:
+    if credentials is None:
+        return None
+    try:
+        return auth.authenticate(credentials.credentials)
+    except AuthenticationError:
+        raise HTTPException(status_code=401, detail="Invalid API key")

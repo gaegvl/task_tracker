@@ -23,6 +23,7 @@ class SqlAlchemyTaskStatusHistoryRepository(TaskStatusHistoryRepositoryPort):
             from_status=change.from_status.value,
             to_state=change.to_state.value,
             changed_at=change.changed_at,
+            changed_by=change.changed_by,
         )
         self.session.add(task_status_change_model)
         await self.session.commit()
@@ -45,6 +46,7 @@ class SqlAlchemyTaskStatusHistoryRepository(TaskStatusHistoryRepositoryPort):
                 from_status=TaskStatus(change.from_status),
                 to_state=TaskStatus(change.to_state),
                 changed_at=change.changed_at,
+                changed_by=change.changed_by,
             )
             for change in task_status_change_models
         ]

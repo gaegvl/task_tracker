@@ -17,3 +17,4 @@ class TaskStatusChangeResponse(BaseModel):
     from_status: TaskStatus
     to_state: TaskStatus
     changed_at: datetime
+    changed_by: UUID | None = None
