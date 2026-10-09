@@ -34,7 +34,10 @@ async def test_get_task_by_id_use_case() -> None:
         project_repository=project_repository,
     )
     command = CreateTaskCommand(
-        title="Test Task", description="Test Description", project_id=result.id
+        title="Test Task",
+        description="Test Description",
+        project_id=result.id,
+        created_by=TEST_ID_GENERATOR.new_id(),
     )
 
     result = await create_use_case.execute(command=command)

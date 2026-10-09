@@ -26,11 +26,13 @@ from src.infrastructure.db.repositories.in_memory_project_repository import (
 from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
+from src.infrastructure.db.seed_users import USER_USER_ID
 from src.infrastructure.id_generator.system_id_generator import SystemIdGenerator
 from tests.fakes import FixedClock
 
 TEST_CLOCK = FixedClock(datetime(2026, 1, 1, 12, 0, 0))
 TEST_ID_GENERATOR = SystemIdGenerator()
+DEFAULT_TASK_OWNER_ID = USER_USER_ID
 
 ADMIN_API_KEY = "test-admin-key"
 USER_API_KEY = "test-user-key"
@@ -110,6 +112,7 @@ def create_task_via_api(
             "description": description,
             "project_id": str(project_id),
         },
+        headers=user_headers(),
     )
     assert response.status_code == 201
     return response.json()["id"]
@@ -146,6 +149,7 @@ async def create_task_in_memory(
     project_id: UUID,
     title: str = "Test Task",
     description: str = "Test Description",
+    created_by: UUID = DEFAULT_TASK_OWNER_ID,
 ) -> UUID:
     use_case = make_create_task_use_case(
         task_repository=task_repository,
@@ -153,7 +157,10 @@ async def create_task_in_memory(
     )
     result = await use_case.execute(
         command=CreateTaskCommand(
-            title=title, description=description, project_id=project_id
+            title=title,
+            description=description,
+            project_id=project_id,
+            created_by=created_by,
         )
     )
     return result.id
@@ -173,6 +180,7 @@ async def add_tasks_to_repository(
             project_id=project_id,
             status=status,
             created_at=TEST_CLOCK.now(),
+            created_by=DEFAULT_TASK_OWNER_ID,
         )
         await repository.add(task=task)
 

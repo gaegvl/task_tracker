@@ -16,6 +16,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     TEST_ID_GENERATOR,
     add_tasks_to_repository,
     create_project_in_memory,
@@ -35,7 +36,11 @@ async def test_restore_task_use_case() -> None:
         task_repository, project_repository, project_id
     )
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_task_use_case.execute(command=delete_command)
 
     use_case = RestoreTaskUseCase(
@@ -93,7 +98,11 @@ async def test_restore_task_after_delete_and_task_is_in_list_tasks() -> None:
     await add_tasks_to_repository(3, project_id, TaskStatus.TODO, task_repository)
 
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_task_use_case.execute(command=delete_command)
 
     result = await task_repository.list_tasks(
@@ -123,7 +132,11 @@ async def test_restore_task_with_deleted_project() -> None:
         task_repository, project_repository, project_id
     )
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_task_use_case.execute(command=delete_command)
 
     delete_project_use_case = make_delete_project_use_case(
@@ -150,7 +163,11 @@ async def test_restore_task_after_purge() -> None:
         task_repository, project_repository, project_id
     )
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_use_case.execute(command=delete_command)
     use_case = RestoreTaskUseCase(
         task_repository=task_repository, project_repository=project_repository

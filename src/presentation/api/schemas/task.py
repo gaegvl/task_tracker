@@ -17,11 +17,13 @@ class CreateTaskResponse(BaseModel):
     title: str
     status: TaskStatus
     created_at: datetime
+    created_by: UUID | None = None
 
 
 class TaskResponse(CreateTaskResponse):
     description: str | None
     project_id: UUID
+    created_by: UUID | None = None
 
 
 class ListTasksParams(BaseModel):

@@ -24,6 +24,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             status=task.status.value,
             created_at=task.created_at,
             deleted_at=None,
+            created_by=task.created_by,
         )
         self.session.add(task_model)
         await self.session.commit()
@@ -43,6 +44,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             project_id=task.project_id,
             status=TaskStatus(task.status),
             created_at=task.created_at,
+            created_by=task.created_by,
         )
 
     async def update(self, task: Task) -> None:
@@ -85,6 +87,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
                 project_id=task.project_id,
                 status=TaskStatus(task.status),
                 created_at=task.created_at,
+                created_by=task.created_by,
             )
             for task in tasks
         ]
@@ -121,6 +124,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             project_id=task.project_id,
             status=TaskStatus(task.status),
             created_at=task.created_at,
+            created_by=task.created_by,
         )
 
     async def restore(self, task: Task) -> Task:
@@ -135,6 +139,7 @@ class SqlAlchemyTaskRepository(TaskRepositoryPort):
             project_id=task.project_id,
             status=TaskStatus(task.status),
             created_at=task.created_at,
+            created_by=task.created_by,
         )
 
     async def restore_by_project_id(self, project_id: UUID) -> None:

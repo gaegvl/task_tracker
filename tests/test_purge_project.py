@@ -18,6 +18,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     TEST_CLOCK,
     TEST_ID_GENERATOR,
     add_tasks_to_repository,
@@ -46,7 +47,11 @@ async def test_purge_project_cascade() -> None:
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
 
     for task_id in task_ids:
-        delete_command = DeleteTaskCommand(task_id=task_id)
+        delete_command = DeleteTaskCommand(
+            task_id=task_id,
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
+        )
         await delete_use_case.execute(command=delete_command)
 
     delete_project_use_case = make_delete_project_use_case(
@@ -73,7 +78,11 @@ async def test_purge_project_with_active_tasks() -> None:
     command = PurgeProjectCommand(project_id=project_id)
 
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_task_use_case.execute(command=delete_command)
 
     delete_project_use_case = make_delete_project_use_case(
@@ -112,10 +121,18 @@ async def test_purge_isolate_by_project_id() -> None:
     purge_project_use_case = PurgeProjectUseCase(project_repository, task_repository)
 
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id_1)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id_1,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_use_case.execute(command=delete_command)
 
-    delete_command = DeleteTaskCommand(task_id=task_id_2)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id_2,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_use_case.execute(command=delete_command)
 
     command = PurgeProjectCommand(project_id=project_id_2)

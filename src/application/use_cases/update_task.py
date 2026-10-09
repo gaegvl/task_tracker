@@ -11,12 +11,15 @@ from src.application.ports.task_status_history_repository import (
 from src.application.use_cases.get_task_by_id import GetTaskByIdResult
 from src.domain.entities.task import TaskStatus
 from src.domain.entities.task_status_change import TaskStatusChange
+from src.domain.exceptions import AuthorizationError
 
 
 @dataclass
 class UpdateTaskCommand:
     task_id: UUID
     status: TaskStatus
+    actor_id: UUID
+    actor_is_admin: bool
     title: str | None = None
     description: str | None = None
     project_id: UUID | None = None
@@ -40,6 +43,11 @@ class UpdateTaskUseCase:
 
     async def execute(self, command: UpdateTaskCommand) -> GetTaskByIdResult:
         task = await self.task_repository.get_by_id(command.task_id)
+        if not command.actor_is_admin:
+            if task.created_by is None or task.created_by != command.actor_id:
+                raise AuthorizationError(
+                    f"User {command.actor_id} is not allowed to modify task {command.task_id}"  # noqa: E501
+                )
         old_status = task.status
         new_status = command.status
         if command.project_id:
@@ -58,7 +66,7 @@ class UpdateTaskUseCase:
                 from_status=old_status,
                 to_state=new_status,
                 changed_at=self.clock.now(),
-                changed_by=command.changed_by,
+                changed_by=command.actor_id,
             )
             await self.task_status_history_repository.append(change)
         await self.task_repository.update(updated_task)

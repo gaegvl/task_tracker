@@ -2,7 +2,10 @@ import pytest
 
 from src.application.use_cases.create_task import CreateTaskCommand
 from src.domain.entities.task import TaskStatus
-from src.domain.exceptions import InvalidTaskTitleError, ProjectNotFoundError
+from src.domain.exceptions import (
+    InvalidTaskTitleError,
+    ProjectNotFoundError,
+)
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
@@ -28,7 +31,10 @@ async def test_create_task_use_case_returns_created_task() -> None:
 
     result = await use_case.execute(
         command=CreateTaskCommand(
-            title="Test Task", description="Test Description", project_id=project_id
+            title="Test Task",
+            description="Test Description",
+            project_id=project_id,
+            created_by=TEST_ID_GENERATOR.new_id(),
         )
     )
 
@@ -48,7 +54,10 @@ async def test_create_task_use_case_persists_task_in_repository() -> None:
 
     result = await use_case.execute(
         command=CreateTaskCommand(
-            title="Test Task", description="Test Description", project_id=project_id
+            title="Test Task",
+            description="Test Description",
+            project_id=project_id,
+            created_by=TEST_ID_GENERATOR.new_id(),
         )
     )
 
@@ -68,7 +77,10 @@ async def test_create_task_use_case_invalid_title() -> None:
     with pytest.raises(InvalidTaskTitleError):
         await use_case.execute(
             command=CreateTaskCommand(
-                title="  a ", description=None, project_id=TEST_ID_GENERATOR.new_id()
+                title="  a ",
+                description=None,
+                project_id=TEST_ID_GENERATOR.new_id(),
+                created_by=TEST_ID_GENERATOR.new_id(),
             )
         )
 
@@ -88,5 +100,6 @@ async def test_create_task_use_case_project_not_found() -> None:
                 title="Test Task",
                 description="Test Description",
                 project_id=TEST_ID_GENERATOR.new_id(),
+                created_by=TEST_ID_GENERATOR.new_id(),
             )
         )

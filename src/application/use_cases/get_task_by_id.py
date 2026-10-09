@@ -19,6 +19,7 @@ class GetTaskByIdResult:
     project_id: UUID
     status: TaskStatus
     created_at: datetime
+    created_by: UUID | None
 
     @classmethod
     def from_entity(cls, task: Task) -> GetTaskByIdResult:
@@ -29,6 +30,7 @@ class GetTaskByIdResult:
             project_id=task.project_id,
             status=task.status,
             created_at=task.created_at,
+            created_by=task.created_by,
         )
 
 

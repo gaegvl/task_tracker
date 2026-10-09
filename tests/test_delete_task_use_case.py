@@ -2,7 +2,7 @@ import pytest
 
 from src.application.use_cases.create_task import CreateTaskCommand
 from src.application.use_cases.delete_task import DeleteTaskCommand
-from src.domain.exceptions import TaskNotFoundError
+from src.domain.exceptions import AuthorizationError, TaskNotFoundError
 from src.infrastructure.db.repositories.in_memory_project_repository import (
     InMemoryProjectRepository,
 )
@@ -10,6 +10,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     TEST_ID_GENERATOR,
     create_project_in_memory,
     create_task_in_memory,
@@ -25,7 +26,11 @@ async def test_delete_task_use_case_not_found() -> None:
 
     with pytest.raises(TaskNotFoundError):
         await delete_task.execute(
-            command=DeleteTaskCommand(task_id=TEST_ID_GENERATOR.new_id())
+            command=DeleteTaskCommand(
+                task_id=TEST_ID_GENERATOR.new_id(),
+                actor_id=DEFAULT_TASK_OWNER_ID,
+                actor_is_admin=False,
+            )
         )
 
 
@@ -38,7 +43,13 @@ async def test_delete_task_use_case_soft_deleted_not_found_on_get() -> None:
         task_repository, project_repository, project_id
     )
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
-    await delete_use_case.execute(command=DeleteTaskCommand(task_id=task_id))
+    await delete_use_case.execute(
+        command=DeleteTaskCommand(
+            task_id=task_id,
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
+        )
+    )
 
     with pytest.raises(TaskNotFoundError):
         await task_repository.get_by_id(task_id)
@@ -53,7 +64,11 @@ async def test_delete_task_use_case_soft_deleted_raises_on_second_delete() -> No
         task_repository, project_repository, project_id
     )
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     await delete_use_case.execute(command=delete_command)
 
     with pytest.raises(TaskNotFoundError):
@@ -71,7 +86,10 @@ async def test_delete_task_use_case_soft_deleted_excluded_from_list() -> None:
     )
     task_result_1 = await create_use_case.execute(
         command=CreateTaskCommand(
-            title="Test Task", description="Test Description", project_id=project_id
+            title="Test Task",
+            description="Test Description",
+            project_id=project_id,
+            created_by=DEFAULT_TASK_OWNER_ID,
         )
     )
     await create_use_case.execute(
@@ -79,6 +97,7 @@ async def test_delete_task_use_case_soft_deleted_excluded_from_list() -> None:
             title="Test Task 2",
             description="Test Description 2",
             project_id=project_id,
+            created_by=DEFAULT_TASK_OWNER_ID,
         )
     )
     await create_use_case.execute(
@@ -86,13 +105,42 @@ async def test_delete_task_use_case_soft_deleted_excluded_from_list() -> None:
             title="Test Task 3",
             description="Test Description 3",
             project_id=project_id,
+            created_by=DEFAULT_TASK_OWNER_ID,
         )
     )
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
-    await delete_use_case.execute(command=DeleteTaskCommand(task_id=task_result_1.id))
+    await delete_use_case.execute(
+        command=DeleteTaskCommand(
+            task_id=task_result_1.id,
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
+        )
+    )
 
     tasks = await task_repository.list_tasks(
         project_id=project_id, status=None, limit=10, offset=0
     )
 
     assert len(tasks) == 2
+
+
+@pytest.mark.asyncio
+async def test_create_task_use_case_without_created_by() -> None:
+    project_repository = InMemoryProjectRepository()
+    task_repository = InMemoryTaskRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    delete_use_case = make_delete_task_use_case(task_repository=task_repository)
+
+    created_by = TEST_ID_GENERATOR.new_id()
+
+    with pytest.raises(AuthorizationError):
+        await delete_use_case.execute(
+            command=DeleteTaskCommand(
+                task_id=task_id,
+                actor_id=created_by,
+                actor_is_admin=False,
+            )
+        )

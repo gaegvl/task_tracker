@@ -110,7 +110,7 @@ Query: `project_id` (обязательный), `status` (optional), `limit` (1�
 Ответ `200` или `404` (`{"detail": "Task not found"}`).
 
 ### Обновление задачи по id (`PATCH /tasks/{task_id}`)
-Дополнительное поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе(если есть).
+Дополнительное поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе.
 Body: `status` (обязательный), `title`, `description`, `project_id` (optional).
 Допустимые переходы статуса: 
 - `todo` -> `in_progress` -> `done`.
@@ -154,7 +154,9 @@ Query: `limit` (1–100, default 10), `offset` (≥ 0, default 0).
 # создать
 curl -s -X POST http://127.0.0.1:8000/tasks/ \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <USER_API_KEY> | <ADMIN_API_KEY>" \
   -d '{"title":"My task","project_id":"550e8400-e29b-41d4-a716-446655440000"}'
+  
 
 # список todo в проекте
 curl -s "http://127.0.0.1:8000/tasks/?project_id=550e8400-e29b-41d4-a716-446655440000&status=todo"
@@ -162,7 +164,9 @@ curl -s "http://127.0.0.1:8000/tasks/?project_id=550e8400-e29b-41d4-a716-4466554
 # сменить статус
 curl -s -X PATCH "http://127.0.0.1:8000/tasks/<TASK_ID>" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <USER_API_KEY> | <ADMIN_API_KEY>" \
   -d '{"status":"in_progress"}'
+  
 
 # невалидный переход статуса -> 409
 curl -s -X PATCH "http://127.0.0.1:8000/tasks/<TASK_ID>" \
@@ -170,8 +174,8 @@ curl -s -X PATCH "http://127.0.0.1:8000/tasks/<TASK_ID>" \
   -d '{"status":"done"}'
 
 # удалить
-curl -s -X DELETE "http://127.0.0.1:8000/tasks/<TASK_ID>"
-
+curl -s -X DELETE "http://127.0.0.1:8000/tasks/<TASK_ID>" \
+  -H "Authorization: Bearer <USER_API_KEY> | <ADMIN_API_KEY>"
 # несуществующая задача
 curl -s -X GET "http://127.0.0.1:8000/tasks/<TASK_ID>"
 
@@ -273,7 +277,7 @@ curl -s -X DELETE "http://127.0.0.1:8000/projects/<PROJECT_ID>/purge" \
 
 ## Авторизация (admin)
 
-Дополнительное поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе(если есть).
+Дополнительное поле `changed_by` заполняется из заголовка `Authorization` при PATCH запросе.
 Ключи задаются в `src/.env`:
 
 ```env
@@ -283,16 +287,17 @@ USER_API_KEY=...
 
 | Операция | Auth |
 |----------|------|
-| CRUD, soft `DELETE`, `status-history` | не требуется |
-| `POST .../restore`, `DELETE .../purge` | `Authorization: Bearer <ADMIN_API_KEY>` |
+| GET tasks, status-history, projects CRUD | не требуется |
+| `POST/PATCH/DELETE /tasks...` (soft) | Bearer user или admin |
+| mutate только свою задачу | user; admin — любую |
+| restore / purge | Bearer admin |
 
 Коды ответа:
 
 - `401` — нет заголовка или неверный ключ
-- `403` — ключ `USER_API_KEY`, нужен admin
+- `403` — неверный владелец (`created_by`) обьекта
 
-Обычный CRUD без заголовка работает как раньше.
-
+Для запросов на mutate (POST, PATCH, DELETE) требуется заголовок `Authorization: Bearer <USER_API_KEY>` или `Authorization: Bearer <ADMIN_API_KEY>`.
 
 ## Тесты
 

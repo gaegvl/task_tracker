@@ -24,6 +24,7 @@ class Task:
     status: TaskStatus
     created_at: datetime
     deleted_at: datetime | None = None
+    created_by: UUID | None = None
 
     def __post_init__(self) -> None:
         if not self.title.strip():
@@ -70,3 +71,6 @@ class Task:
 
     def restore(self) -> Task:
         return replace(self, deleted_at=None)
+
+    def is_owned_by(self, user_id: UUID) -> bool:
+        return self.created_by is not None and self.created_by == user_id

@@ -7,6 +7,7 @@ from tests.helpers import (
     create_project_via_api,
     create_task_via_api,
     create_tasks_via_api,
+    user_headers,
 )
 
 
@@ -34,6 +35,7 @@ def test_create_task_for_project_returns_201() -> None:
                 "description": "Test Description",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
 
         assert response.status_code == 201
@@ -172,6 +174,7 @@ def test_create_task_in_deleted_project_returns_404() -> None:
                 "description": "Test Description",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
         assert response.status_code == 404
 
@@ -245,6 +248,7 @@ def test_restore_project_and_create_task_returns_201() -> None:
                 "description": "Test Description",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
         assert response.status_code == 201
 
@@ -254,8 +258,8 @@ def test_restore_project_and_restore_task_returns_200() -> None:
         project_id = create_project_via_api(client)
         task_id_1 = create_task_via_api(client, project_id)
         task_id_2 = create_task_via_api(client, project_id)
-        client.delete(f"/tasks/{task_id_1}")
-        client.delete(f"/tasks/{task_id_2}")
+        client.delete(f"/tasks/{task_id_1}", headers=user_headers())
+        client.delete(f"/tasks/{task_id_2}", headers=user_headers())
         response = client.delete(f"/projects/{project_id}")
         assert response.status_code == 204
 
@@ -275,7 +279,7 @@ def test_purge_project_returns_204() -> None:
         project_id = create_project_via_api(client)
         task_ids = create_tasks_via_api(client, 5, project_id)
         for task_id in task_ids:
-            response = client.delete(f"/tasks/{task_id}")
+            response = client.delete(f"/tasks/{task_id}", headers=user_headers())
             assert response.status_code == 204
 
         response = client.delete(f"/projects/{project_id}")

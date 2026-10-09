@@ -19,6 +19,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
 )
 from src.infrastructure.db.seed_users import ADMIN_USER_ID
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     TEST_ID_GENERATOR,
     create_project_in_memory,
     create_task_in_memory,
@@ -48,7 +49,12 @@ async def test_task_status_history_use_case() -> None:
     result = await history_use_case.execute(command=history_command)
     assert result == []
 
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.IN_PROGRESS,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -76,7 +82,11 @@ async def test_task_status_history_status_change_to_the_same_status() -> None:
     history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
 
     update_command = UpdateTaskCommand(
-        task_id=task_id, status=TaskStatus.TODO, title="Test Task 2"
+        task_id=task_id,
+        status=TaskStatus.TODO,
+        title="Test Task 2",
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
     )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
@@ -104,7 +114,12 @@ async def test_task_status_history_invalid_status_transition() -> None:
     )
     history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
 
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.DONE,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -132,7 +147,12 @@ async def test_task_status_history_two_status_changes() -> None:
     )
     history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
 
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.IN_PROGRESS,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -143,7 +163,12 @@ async def test_task_status_history_two_status_changes() -> None:
     result = await history_use_case.execute(command=history_command)
     assert len(result) == 1
 
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.DONE,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -169,7 +194,12 @@ async def test_task_status_history_two_status_changes_with_pagination() -> None:
         task_repository=task_repository,
     )
     history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=1, offset=0)
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.IN_PROGRESS,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -202,7 +232,12 @@ async def test_task_status_history_soft_delete() -> None:
     result = await history_use_case.execute(command=history_command)
     assert result == []
 
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.IN_PROGRESS,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -212,7 +247,12 @@ async def test_task_status_history_soft_delete() -> None:
     result = await history_use_case.execute(command=history_command)
     assert len(result) == 1
 
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.DONE)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.DONE,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -222,7 +262,11 @@ async def test_task_status_history_soft_delete() -> None:
     result = await history_use_case.execute(command=history_command)
     assert len(result) == 2
 
-    delete_command = DeleteTaskCommand(task_id=task_id)
+    delete_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     delete_use_case = make_delete_task_use_case(task_repository=task_repository)
     await delete_use_case.execute(command=delete_command)
 
@@ -261,7 +305,10 @@ async def test_task_status_history_changed_by() -> None:
     )
     history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
     update_command = UpdateTaskCommand(
-        task_id=task_id, status=TaskStatus.IN_PROGRESS, changed_by=ADMIN_USER_ID
+        task_id=task_id,
+        status=TaskStatus.IN_PROGRESS,
+        actor_id=ADMIN_USER_ID,
+        actor_is_admin=True,
     )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
@@ -274,7 +321,7 @@ async def test_task_status_history_changed_by() -> None:
 
 
 @pytest.mark.asyncio
-async def test_task_status_history_changed_by_none() -> None:
+async def test_task_status_history_changed_by_is_actor() -> None:
     task_status_history_repository = InMemoryTaskStatusHistoryRepository()
     task_repository = InMemoryTaskRepository()
     project_repository = InMemoryProjectRepository()
@@ -287,7 +334,12 @@ async def test_task_status_history_changed_by_none() -> None:
         task_repository=task_repository,
     )
     history_command = ListTaskStatusHistoryCommand(task_id=task_id, limit=10, offset=0)
-    update_command = UpdateTaskCommand(task_id=task_id, status=TaskStatus.IN_PROGRESS)
+    update_command = UpdateTaskCommand(
+        task_id=task_id,
+        status=TaskStatus.IN_PROGRESS,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
     update_use_case = make_update_task_use_case(
         task_repository=task_repository,
         task_status_history_repository=task_status_history_repository,
@@ -295,4 +347,4 @@ async def test_task_status_history_changed_by_none() -> None:
     )
     await update_use_case.execute(command=update_command)
     result = await history_use_case.execute(command=history_command)
-    assert result[0].changed_by is None
+    assert result[0].changed_by == DEFAULT_TASK_OWNER_ID

@@ -8,6 +8,7 @@ from tests.helpers import (
     create_project_via_api,
     create_task_via_api,
     create_tasks_via_api,
+    user_headers,
 )
 
 
@@ -21,6 +22,7 @@ def test_create_task_returns_201() -> None:
                 "description": "Test Description",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
 
         assert response.status_code == 201
@@ -133,6 +135,7 @@ def test_update_task_returns_200() -> None:
                 "description": "Test Description updated",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
 
         assert response.status_code == 200
@@ -155,6 +158,7 @@ def test_update_task_invalid_status_transition_returns_409() -> None:
                 "description": "Test Description updated",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
 
         assert response.status_code == 409
@@ -172,6 +176,7 @@ def test_get_updated_task_returns_new_fields() -> None:
                 "description": "Test Description updated",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
 
         response = client.get(f"/tasks/{task_id}")
@@ -194,6 +199,7 @@ def test_list_tasks_filters_by_status_after_update() -> None:
                     "description": "Test Description updated",
                     "project_id": str(project_id),
                 },
+                headers=user_headers(),
             )
 
         response = client.get(
@@ -222,6 +228,7 @@ def test_update_task_not_found_returns_404() -> None:
                 "description": "Test Description updated",
                 "project_id": str(project_id),
             },
+            headers=user_headers(),
         )
 
         assert response.status_code == 404
@@ -233,7 +240,7 @@ def test_delete_task_returns_204() -> None:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
 
-        response = client.delete(f"/tasks/{task_id}")
+        response = client.delete(f"/tasks/{task_id}", headers=user_headers())
 
         assert response.status_code == 204
 
@@ -242,9 +249,9 @@ def test_delete_task_twice_returns_404() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
 
-        response = client.delete(f"/tasks/{task_id}")
+        response = client.delete(f"/tasks/{task_id}", headers=user_headers())
 
         assert response.status_code == 404
 
@@ -253,7 +260,7 @@ def test_get_deleted_task_returns_404() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
 
         response = client.get(f"/tasks/{task_id}")
 
@@ -262,7 +269,9 @@ def test_get_deleted_task_returns_404() -> None:
 
 def test_delete_task_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.delete(f"/tasks/{TEST_ID_GENERATOR.new_id()}")
+        response = client.delete(
+            f"/tasks/{TEST_ID_GENERATOR.new_id()}", headers=user_headers()
+        )
 
         assert response.status_code == 404
 
@@ -276,6 +285,7 @@ def test_create_task_with_invalid_project_id_returns_404() -> None:
                 "description": "Test Description",
                 "project_id": str(TEST_ID_GENERATOR.new_id()),
             },
+            headers=user_headers(),
         )
 
         assert response.status_code == 404
@@ -287,10 +297,12 @@ def test_patch_deleted_task_returns_404() -> None:
         project_id = create_project_via_api(client)
         task = create_task_via_api(client, project_id)
 
-        client.delete(f"/tasks/{task}")
+        client.delete(f"/tasks/{task}", headers=user_headers())
 
         response = client.patch(
-            f"/tasks/{task}", json={"status": TaskStatus.IN_PROGRESS.value}
+            f"/tasks/{task}",
+            json={"status": TaskStatus.IN_PROGRESS.value},
+            headers=user_headers(),
         )
 
         assert response.status_code == 404
@@ -302,7 +314,7 @@ def test_delete_task_from_list_tasks() -> None:
         project_id = create_project_via_api(client)
         task_ids = create_tasks_via_api(client, 3, project_id)
 
-        client.delete(f"/tasks/{task_ids[0]}")
+        client.delete(f"/tasks/{task_ids[0]}", headers=user_headers())
 
         response = client.get(
             "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
@@ -316,7 +328,7 @@ def test_restore_task_returns_200() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
 
         response = client.post(f"/tasks/{task_id}/restore", headers=admin_headers())
 
@@ -351,7 +363,7 @@ def test_restore_task_after_delete_and_task_is_in_list_tasks() -> None:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
         create_tasks_via_api(client, 3, project_id)
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
 
         list_task = client.get(
             "/tasks", params={"project_id": str(project_id), "limit": 10, "offset": 0}
@@ -376,7 +388,7 @@ def test_restore_task_with_deleted_project_returns_404() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
         client.delete(f"/projects/{project_id}")
         response = client.post(f"/tasks/{task_id}/restore", headers=admin_headers())
         assert response.status_code == 404
@@ -387,7 +399,7 @@ def test_purge_task_returns_204() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
         response = client.delete(f"/tasks/{task_id}/purge", headers=admin_headers())
         assert response.status_code == 204
 
@@ -418,7 +430,7 @@ def test_purge_task_and_restore_task_returns_404() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
         response = client.delete(f"/tasks/{task_id}/purge", headers=admin_headers())
         assert response.status_code == 204
         response = client.post(f"/tasks/{task_id}/restore", headers=admin_headers())
@@ -430,9 +442,63 @@ def test_purge_task_and_get_status_history_returns_404() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_tasks_via_api(client, 1, project_id)[0]
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
         response = client.delete(f"/tasks/{task_id}/purge", headers=admin_headers())
         assert response.status_code == 204
         response = client.get(f"/tasks/{task_id}/status-history")
         assert response.status_code == 404
         assert response.json() == {"detail": "Task not found"}
+
+
+def test_user_cant_patch_task_created_by_another_user_returns_403() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        create_task_response = client.post(
+            "/tasks",
+            json={
+                "title": "Test Task",
+                "description": "Test Description",
+                "project_id": str(project_id),
+            },
+            headers=admin_headers(),
+        )
+        response = client.patch(
+            f"/tasks/{create_task_response.json()['id']}",
+            json={"status": TaskStatus.IN_PROGRESS.value},
+            headers=user_headers(),
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Forbidden"}
+
+
+def test_user_cant_delete_task_created_by_another_user_returns_403() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        create_task_response = client.post(
+            "/tasks",
+            json={
+                "title": "Test Task",
+                "description": "Test Description",
+                "project_id": str(project_id),
+            },
+            headers=admin_headers(),
+        )
+        response = client.delete(
+            f"/tasks/{create_task_response.json()['id']}",
+            headers=user_headers(),
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Forbidden"}
+
+
+def test_admin_can_patch_task_created_by_another_user_returns_200() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_tasks_via_api(client, 1, project_id)[0]
+        response = client.patch(
+            f"/tasks/{task_id}",
+            json={"status": TaskStatus.IN_PROGRESS.value},
+            headers=admin_headers(),
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == TaskStatus.IN_PROGRESS.value

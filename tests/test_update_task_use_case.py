@@ -8,7 +8,11 @@ from src.application.use_cases.list_task_status_history import (
 )
 from src.application.use_cases.update_task import UpdateTaskCommand
 from src.domain.entities.task import TaskStatus
-from src.domain.exceptions import InvalidTaskStatusTransitionError, TaskNotFoundError
+from src.domain.exceptions import (
+    AuthorizationError,
+    InvalidTaskStatusTransitionError,
+    TaskNotFoundError,
+)
 from src.infrastructure.db.repositories import (
     in_memory_task_status_history_repository,
 )
@@ -20,6 +24,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
 )
 from tests.fakes import FixedClock
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     TEST_ID_GENERATOR,
     create_project_in_memory,
     create_task_in_memory,
@@ -53,6 +58,8 @@ async def test_update_task_status_history_uses_clock_for_changed_at() -> None:
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
     history_use_case = ListTaskStatusHistoryUseCase(
@@ -85,6 +92,8 @@ async def test_update_task_use_case_todo_to_in_progress() -> None:
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -116,6 +125,8 @@ async def test_update_task_use_case_in_progress_to_done() -> None:
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -124,6 +135,8 @@ async def test_update_task_use_case_in_progress_to_done() -> None:
             task_id=task_id,
             status=TaskStatus.DONE,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -147,6 +160,8 @@ async def test_update_task_use_case_not_found() -> None:
                 task_id=TEST_ID_GENERATOR.new_id(),
                 status=TaskStatus.IN_PROGRESS,
                 changed_by=TEST_ID_GENERATOR.new_id(),
+                actor_id=DEFAULT_TASK_OWNER_ID,
+                actor_is_admin=False,
             )
         )
 
@@ -172,6 +187,8 @@ async def test_update_task_use_case_invalid_transition_todo_to_done() -> None:
                 task_id=task_id,
                 status=TaskStatus.DONE,
                 changed_by=TEST_ID_GENERATOR.new_id(),
+                actor_id=DEFAULT_TASK_OWNER_ID,
+                actor_is_admin=False,
             )
         )
 
@@ -195,6 +212,8 @@ async def test_update_task_use_case_valid_transition_in_progress_to_todo() -> No
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -203,6 +222,8 @@ async def test_update_task_use_case_valid_transition_in_progress_to_todo() -> No
             task_id=task_id,
             status=TaskStatus.TODO,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -228,6 +249,8 @@ async def test_update_task_use_case_invalid_transition_done_to_in_progress() -> 
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
     await update_use_case.execute(
@@ -235,6 +258,8 @@ async def test_update_task_use_case_invalid_transition_done_to_in_progress() -> 
             task_id=task_id,
             status=TaskStatus.DONE,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -244,6 +269,8 @@ async def test_update_task_use_case_invalid_transition_done_to_in_progress() -> 
                 task_id=task_id,
                 status=TaskStatus.IN_PROGRESS,
                 changed_by=TEST_ID_GENERATOR.new_id(),
+                actor_id=DEFAULT_TASK_OWNER_ID,
+                actor_is_admin=False,
             )
         )
 
@@ -267,6 +294,8 @@ async def test_update_task_use_case_invalid_transition_done_to_todo() -> None:
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
     await update_use_case.execute(
@@ -274,6 +303,8 @@ async def test_update_task_use_case_invalid_transition_done_to_todo() -> None:
             task_id=task_id,
             status=TaskStatus.DONE,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -283,6 +314,8 @@ async def test_update_task_use_case_invalid_transition_done_to_todo() -> None:
                 task_id=task_id,
                 status=TaskStatus.TODO,
                 changed_by=TEST_ID_GENERATOR.new_id(),
+                actor_id=DEFAULT_TASK_OWNER_ID,
+                actor_is_admin=False,
             )
         )
 
@@ -306,6 +339,8 @@ async def test_update_task_use_case_same_status_is_allowed() -> None:
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
     await update_use_case.execute(
@@ -313,6 +348,8 @@ async def test_update_task_use_case_same_status_is_allowed() -> None:
             task_id=task_id,
             status=TaskStatus.DONE,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
@@ -321,7 +358,36 @@ async def test_update_task_use_case_same_status_is_allowed() -> None:
             task_id=task_id,
             status=TaskStatus.DONE,
             changed_by=TEST_ID_GENERATOR.new_id(),
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
         )
     )
 
     assert updated_task.status == TaskStatus.DONE
+
+
+@pytest.mark.asyncio
+async def test_update_task_use_case_without_created_by() -> None:
+    project_repository = InMemoryProjectRepository()
+    project_id = await create_project_in_memory(project_repository)
+    task_repository = InMemoryTaskRepository()
+    task_id = await create_task_in_memory(
+        task_repository, project_repository, project_id
+    )
+    task_status_history_repository = InMemoryTaskStatusHistoryRepository()
+    update_use_case = make_update_task_use_case(
+        task_repository=task_repository,
+        project_repository=project_repository,
+        task_status_history_repository=task_status_history_repository,
+    )
+    created_by = TEST_ID_GENERATOR.new_id()
+    with pytest.raises(AuthorizationError):
+        await update_use_case.execute(
+            command=UpdateTaskCommand(
+                task_id=task_id,
+                status=TaskStatus.IN_PROGRESS,
+                changed_by=TEST_ID_GENERATOR.new_id(),
+                actor_id=created_by,
+                actor_is_admin=False,
+            )
+        )

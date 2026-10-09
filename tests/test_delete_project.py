@@ -22,6 +22,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     create_project_in_memory,
     create_task_in_memory,
     make_delete_project_use_case,
@@ -109,7 +110,11 @@ async def test_soft_delete_project_with_soft_deleted_tasks() -> None:
         task_repository, project_repository, project_id
     )
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
-    delete_task_command = DeleteTaskCommand(task_id)
+    delete_task_command = DeleteTaskCommand(
+        task_id=task_id,
+        actor_id=DEFAULT_TASK_OWNER_ID,
+        actor_is_admin=False,
+    )
 
     await delete_task_use_case.execute(command=delete_task_command)
 

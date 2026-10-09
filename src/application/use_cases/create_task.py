@@ -14,6 +14,7 @@ class CreateTaskCommand:
     title: str
     description: str | None
     project_id: UUID
+    created_by: UUID
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class CreateTaskResult:
     title: str
     status: TaskStatus
     created_at: datetime
+    created_by: UUID | None
 
 
 class CreateTaskUseCase:
@@ -45,6 +47,7 @@ class CreateTaskUseCase:
             project_id=command.project_id,
             status=TaskStatus.TODO,
             created_at=self.clock.now(),
+            created_by=command.created_by,
         )
         await self.project_repository.get_by_id(command.project_id)
         await self.task_repository.add(task=task)
@@ -53,4 +56,5 @@ class CreateTaskUseCase:
             title=task.title,
             status=task.status,
             created_at=task.created_at,
+            created_by=task.created_by,
         )

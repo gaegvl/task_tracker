@@ -16,13 +16,17 @@ from src.application.use_cases.update_task import UpdateTaskCommand
 from src.domain.entities.task import TaskStatus
 from src.domain.entities.user import CurrentUser
 from src.domain.exceptions import (
+    AuthorizationError,
     DomainError,
     InvalidTaskStatusTransitionError,
     InvalidTaskTitleError,
     ProjectNotFoundError,
     TaskNotFoundError,
 )
-from src.presentation.api.auth import get_optional_current_user, require_admin
+from src.presentation.api.auth import (
+    get_current_user,
+    require_admin,
+)
 from src.presentation.api.dependencies import (
     ApplicationDependencies,
     get_application_dependencies,
@@ -44,15 +48,18 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 async def create_task(
     task: Annotated[CreateTaskRequest, Body],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> CreateTaskResponse:
     try:
         result: CreateTaskResult = await deps.create_task.execute(
-            command=CreateTaskCommand(**task.model_dump())
+            command=CreateTaskCommand(**task.model_dump(), created_by=current_user.id)
         )
     except InvalidTaskTitleError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid task title"
         )
+    except AuthorizationError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     except ProjectNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
@@ -66,6 +73,7 @@ async def create_task(
         title=result.title,
         status=TaskStatus(result.status),
         created_at=result.created_at,
+        created_by=result.created_by,
     )
 
 
@@ -90,6 +98,7 @@ async def get_list_tasks(
             project_id=task.project_id,
             status=TaskStatus(task.status),
             created_at=task.created_at,
+            created_by=task.created_by,
         )
         for task in result.items
     ]
@@ -119,6 +128,7 @@ async def get_task_by_id(
         project_id=result.project_id,
         status=TaskStatus(result.status),
         created_at=result.created_at,
+        created_by=result.created_by,
     )
 
 
@@ -127,7 +137,7 @@ async def update_task(
     task_id: Annotated[UUID, Path()],
     command: Annotated[UpdateTaskRequest, Body()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
-    current_user: Annotated[CurrentUser | None, Depends(get_optional_current_user)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> TaskResponse:
     try:
         updated_task = await deps.update_task.execute(
@@ -137,7 +147,9 @@ async def update_task(
                 title=command.title,
                 description=command.description,
                 project_id=command.project_id,
-                changed_by=current_user.id if current_user else None,
+                changed_by=current_user.id,
+                actor_id=current_user.id,
+                actor_is_admin=current_user.is_admin(),
             )
         )
         return TaskResponse(
@@ -147,6 +159,7 @@ async def update_task(
             project_id=updated_task.project_id,
             status=TaskStatus(updated_task.status),
             created_at=updated_task.created_at,
+            created_by=updated_task.created_by,
         )
     except InvalidTaskStatusTransitionError:
         raise HTTPException(
@@ -157,6 +170,8 @@ async def update_task(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
         )
+    except AuthorizationError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     except DomainError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -167,14 +182,21 @@ async def update_task(
 async def delete_task(
     task_id: Annotated[UUID, Path()],
     deps: Annotated[ApplicationDependencies, Depends(get_application_dependencies)],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> None:
     try:
-        command = DeleteTaskCommand(task_id=task_id)
+        command = DeleteTaskCommand(
+            task_id=task_id,
+            actor_id=current_user.id,
+            actor_is_admin=current_user.is_admin(),
+        )
         await deps.delete_task.execute(command=command)
     except TaskNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
         )
+    except AuthorizationError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     except DomainError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -211,6 +233,7 @@ async def restore_task(
         project_id=result.project_id,
         status=TaskStatus(result.status),
         created_at=result.created_at,
+        created_by=result.created_by,
     )
 
 

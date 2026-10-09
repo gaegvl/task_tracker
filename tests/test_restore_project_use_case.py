@@ -15,6 +15,7 @@ from src.infrastructure.db.repositories.in_memory_task_repository import (
     InMemoryTaskRepository,
 )
 from tests.helpers import (
+    DEFAULT_TASK_OWNER_ID,
     TEST_ID_GENERATOR,
     add_tasks_to_repository,
     create_project_in_memory,
@@ -88,7 +89,11 @@ async def test_restore_project_with_tasks() -> None:
     ]
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
     for task_id in task_ids:
-        delete_command = DeleteTaskCommand(task_id=task_id)
+        delete_command = DeleteTaskCommand(
+            task_id=task_id,
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
+        )
         await delete_task_use_case.execute(command=delete_command)
 
     command = DeleteProjectCommand(id=project_id)
@@ -123,7 +128,13 @@ async def test_isolate_restore_project_with_tasks() -> None:
         task_repository, project_repository, project_id_1
     )
     delete_task_use_case = make_delete_task_use_case(task_repository=task_repository)
-    await delete_task_use_case.execute(command=DeleteTaskCommand(task_id=task_id_1))
+    await delete_task_use_case.execute(
+        command=DeleteTaskCommand(
+            task_id=task_id_1,
+            actor_id=DEFAULT_TASK_OWNER_ID,
+            actor_is_admin=False,
+        )
+    )
 
     delete_project_use_case = make_delete_project_use_case(
         project_repository=project_repository,

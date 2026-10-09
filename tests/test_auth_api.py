@@ -54,7 +54,7 @@ def test_restore_task_with_admin_key_returns_200() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
         task_id = create_task_via_api(client, project_id)
-        client.delete(f"/tasks/{task_id}")
+        client.delete(f"/tasks/{task_id}", headers=user_headers())
 
         response = client.post(f"/tasks/{task_id}/restore", headers=admin_headers())
 
@@ -95,7 +95,7 @@ def test_restore_project_with_admin_key_returns_200() -> None:
         assert response.status_code == 200
 
 
-def test_create_task_without_auth_still_works() -> None:
+def test_create_task_without_auth() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
 
@@ -108,7 +108,8 @@ def test_create_task_without_auth_still_works() -> None:
             },
         )
 
-        assert response.status_code == 201
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Unauthorized"}
 
 
 def test_restore_task_without_bearer_prefix_returns_401() -> None:
@@ -155,20 +156,6 @@ def test_update_task_with_admin_key_returns_200() -> None:
         assert response.json()[0]["changed_by"] == str(ADMIN_USER_ID)
 
 
-def test_update_task_without_api_key_sets_changed_by_null() -> None:
-    with TestClient(app) as client:
-        project_id = create_project_via_api(client)
-        task_id = create_task_via_api(client, project_id)
-        response = client.patch(
-            f"tasks/{task_id}",
-            json={"status": "in_progress"},
-        )
-
-        assert response.status_code == 200
-        response = client.get(f"tasks/{task_id}/status-history")
-        assert response.json()[0]["changed_by"] is None
-
-
 def test_update_task_with_invalid_api_key_returns_401() -> None:
     with TestClient(app) as client:
         project_id = create_project_via_api(client)
@@ -180,3 +167,26 @@ def test_update_task_with_invalid_api_key_returns_401() -> None:
         )
         assert response.status_code == 401
         assert response.json() == {"detail": "Invalid API key"}
+
+
+def test_update_task_without_auth_returns_401() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_task_via_api(client, project_id)
+        response = client.patch(
+            f"tasks/{task_id}",
+            json={"status": "in_progress"},
+        )
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Unauthorized"}
+
+
+def test_delete_task_without_auth_returns_401() -> None:
+    with TestClient(app) as client:
+        project_id = create_project_via_api(client)
+        task_id = create_task_via_api(client, project_id)
+        response = client.delete(
+            f"tasks/{task_id}",
+        )
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Unauthorized"}
